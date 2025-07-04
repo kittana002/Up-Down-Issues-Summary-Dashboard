@@ -346,6 +346,21 @@
             '2838': { province: 'นครศรีธรรมราช', region: 'ใต้' }, // ชุมชนท่าศาลา
             '8083': { province: 'เชียงใหม่', region: 'เหนือ' }, // หน้าโรงพยาบาลสารภี
             '11954': { province: 'เชียงใหม่', region: 'เหนือ' }, // ตลาดคลังมาร์เช่
+            // New stores from the latest update
+            '4674': { province: 'กรุงเทพมหานคร', region: 'กลาง' }, // เจริญกรุง 70
+            '14000': { province: 'หนองคาย', region: 'ตะวันออกเฉียงเหนือ' }, // ไนท์หนองคาย (NE)
+            '7349': { province: 'เชียงใหม่', region: 'เหนือ' }, // ถนนสามล้าน (Mocked)
+            '11966': { province: 'กรุงเทพมหานคร', region: 'กลาง' }, // RSU Tower (Mocked)
+            '14133': { province: 'เพชรบุรี', region: 'ตะวันตก' }, // ชายหาดหนองแจง(ชะอำใต้) (SN)
+            '11352': { province: 'สิงห์บุรี', region: 'กลาง' }, // อัมพวัน (สิงห์บุรี)
+            '3928': { province: 'นครนายก', region: 'กลาง' }, // ปตท.นครนายก
+            '6888': { province: 'นครนายก', region: 'กลาง' }, // ปตท.ฟ้าใส (Mocked)
+            '6884': { province: 'ราชบุรี', region: 'กลาง' }, // ปตท.ดอนตะโก (Mocked)
+            '7143': { province: 'เชียงราย', region: 'เหนือ' }, // แม่สาย 4 (Mocked)
+            '11859': { province: 'นครปฐม', region: 'กลาง' }, // บางน้อยใน (Mocked)
+            '6237': { province: 'ระยอง', region: 'ตะวันออก' }, // ห้วยโป่ง ซอย12 (Mocked)
+            '2156': { province: 'พระนครศรีอยุธยา', region: 'กลาง' }, // ประตูชัย (อยุธยา)
+            '8246': { province: 'นครศรีธรรมราช', region: 'ใต้' }, // ปตท.ทรงธรรม (Mocked)
         };
 
         // Thai Regions Mapping (for mock data)
@@ -368,7 +383,7 @@
             return 'ไม่ทราบภาค'; // Default if not found
         }
 
-        // Raw CSV data from the uploaded file
+        // Raw CSV data from the previous update and new data from [LINE]Solving Router Hang 2.txt
         const rawCsvData = `Date,Time,Ticket,True CID,Problem Type,Store ID,Store Name,Remark
 01/07/2025,15:32,,U16936,Main Link,6300,ทับกวาง,
 01/07/2025,15:32,,U67732,Main Link,16081,PTTOR ทุ่งขวาง-พนัส (ทล.349),
@@ -408,7 +423,7 @@
 02/07/2025,13:41,,WDS25449,Backup 4G,11801,ปตท.หนองปลิงกำแพงเพชร (RC),
 02/07/2025,13:41,,WDS24834,Backup 4G,3225,ธรรมจักร,
 02/07/2025,13:41,,WDS23719,Backup 4G,11833,Cargill Factory Market,
-02/07/2025,13:41,,WDS25016,Backup 4G,10299,DC มหาชัย,
+02/07/2025,13:41,,WDS25016,Backup 4G,10299,DC MhaChai,
 02/07/2025,13:41,,WDS23899,Backup 4G,10342,ราชดำเนิน (กำแพงเพชร),
 02/07/2025,13:41,,WDS24584,Backup 4G,1230,สันติสุข,
 02/07/2025,13:41,,WDS24083,Backup 4G,3144,ปตท.หินกอง,
@@ -460,6 +475,21 @@
 04/07/2025,09:32,,WDS24854,Backup 4G,2838,ชุมชนท่าศาลา,
 04/07/2025,09:32,,WDS23531,Backup 4G,8083,หน้าโรงพยาบาลสารภี,
 04/07/2025,09:32,,WDS23742,Backup 4G,11954,ตลาดคลังมาร์เช่,
+04/07/2025,13:34,,FTTX,Main Link,4674,เจริญกรุง 70,
+04/07/2025,13:34,,NE,Main Link,14000,ไนท์หนองคาย (NE),
+04/07/2025,13:34,,FTTX,Main Link,7349,ถนนสามล้าน,
+04/07/2025,13:34,,FTTX,Main Link,11966,RSU Tower,
+04/07/2025,13:34,,SN,Main Link,14133,ชายหาดหนองแจง(ชะอำใต้),
+04/07/2025,13:34,,4G,Backup 4G,8629,หน้าโรงพยาบาลมหาราช (เชียงใหม่),
+04/07/2025,13:34,,4G,Backup 4G,11352,อัมพวัน (สิงห์บุรี),
+04/07/2025,13:34,,4G,Backup 4G,3928,ปตท.นครนายก,
+04/07/2025,13:34,,4G,Backup 4G,6888,ปตท.ฟ้าใส,
+04/07/2025,13:34,,4G,Backup 4G,6884,ปตท.ดอนตะโก,
+04/07/2025,13:34,,4G,Backup 4G,7143,แม่สาย 4,
+04/07/2025,13:34,,4G,Backup 4G,11859,บางน้อยใน,
+04/07/2025,13:34,,4G,Backup 4G,6237,ห้วยโป่ง ซอย12,
+04/07/2025,13:34,,4G,Backup 4G,2156,ประตูชัย (อยุธยา),
+04/07/2025,13:34,,4G,Backup 4G,8246,ปตท.ทรงธรรม,
 `;
 
         // Function to parse CSV string into an array of objects
@@ -589,6 +619,10 @@
                     uniqueRegions.add(row.Region);
                 }
             });
+
+            // Clear existing options before populating
+            provinceFilter.innerHTML = '<option value="">จังหวัด: ทั้งหมด</option>';
+            regionFilter.innerHTML = '<option value="">ภาค: ทั้งหมด</option>';
 
             // Populate Province Filter
             Array.from(uniqueProvinces).sort().forEach(province => {
@@ -961,7 +995,7 @@
 
             // Iterate through the original parsedCsvData to get full counts
             parsedCsvData.forEach(row => {
-                if (duplicateStoreIdsAllData.has(row['Store ID'])) {
+                if (storeIdCountsAllData.has(row['Store ID']) && storeIdCountsAllData.get(row['Store ID']) > 1) { // Check if it's actually a duplicate
                     if (!duplicateStoresDetails.has(row['Store ID'])) {
                         duplicateStoresDetails.set(row['Store ID'], { name: row['Store Name'], count: 0, problemTypes: new Set(), province: row.Province, region: row.Region });
                     }
