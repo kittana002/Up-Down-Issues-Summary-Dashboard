@@ -167,6 +167,8 @@
                 <div class="mb-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
                     <input type="text" id="searchInput" placeholder="🔎 ค้นหารหัสหรือชื่อร้านค้า..." class="w-full p-3 rounded-lg border border-slate-300 focus:ring-2 focus:ring-amber-400 focus:border-amber-400 transition col-span-full xl:col-span-2">
                     
+                    <input type="text" id="trueCidFilterInput" placeholder="🔎 ค้นหา True CID..." class="w-full p-3 rounded-lg border border-slate-300 focus:ring-2 focus:ring-amber-400 focus:border-amber-400 transition col-span-full xl:col-span-1">
+
                     <select id="problemTypeFilter" class="w-full p-3 rounded-lg border border-slate-300 focus:ring-2 focus:ring-amber-400 focus:border-amber-400 transition">
                         <option value="">ประเภทปัญหา: ทั้งหมด</option>
                         <option value="Main Link">Main Link</option>
@@ -232,6 +234,7 @@
         <div class="modal-content w-11/12 md:w-2/3 lg:w-1/2">
             <span class="close-button">&times;</span>
             <h2 class="text-2xl font-bold text-slate-900 mb-4">รายชื่อจังหวัดที่ได้รับผลกระทบ</h2>
+            <p class="text-slate-600 mb-4">ด้านล่างนี้คือรายชื่อจังหวัดที่มีสาขาได้รับผลกระทบในข้อมูลที่กรอง</p>
             <ul id="affected-provinces-list" class="space-y-2">
                 <!-- Affected provinces will be listed here -->
             </ul>
@@ -243,6 +246,7 @@
         <div class="modal-content w-11/12 md:w-2/3 lg:w-1/2">
             <span class="close-button">&times;</span>
             <h2 class="text-2xl font-bold text-slate-900 mb-4">รายชื่อภาคที่ได้รับผลกระทบ</h2>
+            <p class="text-slate-600 mb-4">ด้านล่างนี้คือรายชื่อภาคที่มีสาขาได้รับผลกระทบในข้อมูลที่กรอง</p>
             <ul id="affected-regions-list" class="space-y-2">
                 <!-- Affected regions will be listed here -->
             </ul>
@@ -507,6 +511,7 @@
 
             document.getElementById('applyFilterBtn').addEventListener('click', updateDashboard);
             document.getElementById('searchInput').addEventListener('input', updateDashboard);
+            document.getElementById('trueCidFilterInput').addEventListener('input', updateDashboard); // New event listener for True CID filter
             document.getElementById('problemTypeFilter').addEventListener('change', updateDashboard);
             document.getElementById('ticketStatusFilter').addEventListener('change', updateDashboard);
             document.getElementById('remarkStatusFilter').addEventListener('change', updateDashboard);
@@ -611,6 +616,7 @@
             const startDate = document.getElementById('startDate').value;
             const endDate = document.getElementById('endDate').value;
             const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+            const trueCidFilterTerm = document.getElementById('trueCidFilterInput').value.toLowerCase(); // Get True CID filter term
             const problemTypeFilter = document.getElementById('problemTypeFilter').value;
             const ticketStatusFilter = document.getElementById('ticketStatusFilter').value;
             const remarkStatusFilter = document.getElementById('remarkStatusFilter').value;
@@ -629,8 +635,9 @@
                 const matchesSearch = row['Store Name'].toLowerCase().includes(searchTerm) ||
                                       row['Store ID'].includes(searchTerm) ||
                                       row.Ticket.toLowerCase().includes(searchTerm) ||
-                                      row['True CID'].toLowerCase().includes(searchTerm) ||
-                                      row.Remark.toLowerCase().includes(searchTerm);
+                                      row.Remark.toLowerCase().includes(searchTerm); // Removed True CID from general search to avoid redundancy
+
+                const matchesTrueCid = trueCidFilterTerm === '' || row['True CID'].toLowerCase().includes(trueCidFilterTerm); // New True CID filter
 
                 const matchesProblemType = problemTypeFilter === '' || row['Problem Type'] === problemTypeFilter;
 
@@ -645,7 +652,7 @@
                 const matchesProvince = provinceFilter === '' || row.Province === provinceFilter;
                 const matchesRegion = regionFilter === '' || row.Region === regionFilter;
 
-                return matchesDate && matchesSearch && matchesProblemType && matchesTicketStatus && matchesRemarkStatus && matchesProvince && matchesRegion;
+                return matchesDate && matchesSearch && matchesTrueCid && matchesProblemType && matchesTicketStatus && matchesRemarkStatus && matchesProvince && matchesRegion;
             });
 
             // Re-render all sections with the filtered data
