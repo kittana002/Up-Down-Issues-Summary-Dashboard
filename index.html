@@ -809,12 +809,12 @@
                             <div class="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-b-lg">
                                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <div>
-                                        <h4 class="font-semibold mb-2 text-red-500">Main Link Issues (${event.main.length})</h4>
-                                        <ul class="list-disc list-inside text-sm space-y-1">${event.main.length > 0 ? event.main.map(store => `<li key=${store.id}>${store.id} - ${store.name}</li>`).join('') : '<li>ไม่มี</li>'}</ul>
+                                        <h4 class="font-semibold mb-2 text-red-500 dark:text-red-400">Main Link Issues (${event.main.length})</h4>
+                                        <ul class="list-disc list-inside text-sm space-y-1 text-gray-600 dark:text-gray-300">${event.main.length > 0 ? event.main.map(store => `<li key=${store.id}>${store.id} - ${store.name}</li>`).join('') : '<li>ไม่มี</li>'}</ul>
                                     </div>
                                     <div>
-                                        <h4 class="font-semibold mb-2 text-blue-500">Backup 4G Issues (${event.backup.length})</h4>
-                                        <ul class="list-disc list-inside text-sm space-y-1">${event.backup.length > 0 ? event.backup.map(store => `<li key=${store.id}>${store.id} - ${store.name}</li>`).join('') : '<li>ไม่มี</li>'}</ul>
+                                        <h4 class="font-semibold mb-2 text-blue-500 dark:text-blue-400">Backup 4G Issues (${event.backup.length})</h4>
+                                        <ul class="list-disc list-inside text-sm space-y-1 text-gray-600 dark:text-gray-300">${event.backup.length > 0 ? event.backup.map(store => `<li key=${store.id}>${store.id} - ${store.name}</li>`).join('') : '<li>ไม่มี</li>'}</ul>
                                     </div>
                                 </div>
                             </div>
