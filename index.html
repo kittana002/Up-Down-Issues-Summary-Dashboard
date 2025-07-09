@@ -773,18 +773,20 @@
                 }
 
                 let paginationHTML = '<nav aria-label="Pagination"><ul class="flex items-center -space-x-px h-8 text-sm">';
-
-                // Previous button
+                
                 paginationHTML += `<li><button id="prev-page" class="flex items-center justify-center px-3 h-8 ms-0 leading-tight text-gray-500 bg-white border border-e-0 border-gray-300 rounded-s-lg hover:bg-gray-100 hover:text-gray-700 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white" ${currentPage === 1 ? 'disabled' : ''}>ก่อนหน้า</button></li>`;
 
-                // Page number buttons
-                for (let i = 1; i <= totalPages; i++) {
+                const pagesPerBlock = 5;
+                const currentBlock = Math.ceil(currentPage / pagesPerBlock);
+                const startPage = (currentBlock - 1) * pagesPerBlock + 1;
+                const endPage = Math.min(startPage + pagesPerBlock - 1, totalPages);
+
+                for (let i = startPage; i <= endPage; i++) {
                     const activeClasses = 'z-10 flex items-center justify-center px-3 h-8 leading-tight text-blue-600 border border-blue-300 bg-blue-50 hover:bg-blue-100 hover:text-blue-700 dark:border-gray-700 dark:bg-gray-700 dark:text-white';
                     const defaultClasses = 'flex items-center justify-center px-3 h-8 leading-tight text-gray-500 bg-white border border-gray-300 hover:bg-gray-100 hover:text-gray-700 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white';
                     paginationHTML += `<li><button data-page="${i}" class="${currentPage === i ? activeClasses : defaultClasses}">${i}</button></li>`;
                 }
 
-                // Next button
                 paginationHTML += `<li><button id="next-page" class="flex items-center justify-center px-3 h-8 leading-tight text-gray-500 bg-white border border-gray-300 rounded-e-lg hover:bg-gray-100 hover:text-gray-700 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white" ${currentPage === totalPages ? 'disabled' : ''}>ถัดไป</button></li>`;
 
                 paginationHTML += '</ul></nav>';
@@ -855,7 +857,7 @@
                 
                 document.getElementById('pagination-container').addEventListener('click', (e) => {
                     const button = e.target.closest('button');
-                    if (!button) return;
+                    if (!button || button.disabled) return;
 
                     const page = button.dataset.page;
                     if (page) {
