@@ -7,9 +7,10 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Sarabun:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
         body {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
+            font-family: 'Sarabun', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
             background-color: #f3f4f6;
         }
         .dark body {
@@ -18,460 +19,787 @@
         .chart-card {
             height: 400px;
         }
+        /* Custom scrollbar */
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 10px; }
+        .dark ::-webkit-scrollbar-track { background: #2d3748; }
+        ::-webkit-scrollbar-thumb { background: #888; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: #555; }
+
+        /* Loading Spinner */
+        #loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(255, 255, 255, 0.8);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+            transition: opacity 0.3s;
+        }
+        .dark #loading-overlay {
+            background-color: rgba(17, 24, 39, 0.8);
+        }
+        .spinner {
+            width: 56px;
+            height: 56px;
+            border: 7px solid #4f46e5;
+            border-bottom-color: transparent;
+            border-radius: 50%;
+            display: inline-block;
+            box-sizing: border-box;
+            animation: rotation 1s linear infinite;
+        }
+        @keyframes rotation {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        /* Tooltip */
+        [data-tooltip] {
+            position: relative;
+            cursor: pointer;
+        }
+        [data-tooltip]::after {
+            content: attr(data-tooltip);
+            position: absolute;
+            bottom: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            margin-bottom: 8px;
+            background-color: #1f2937;
+            color: #ffffff;
+            padding: 4px 8px;
+            border-radius: 6px;
+            font-size: 0.875rem;
+            white-space: nowrap;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.2s, visibility 0.2s;
+            z-index: 10;
+        }
+        [data-tooltip]:hover::after {
+            opacity: 1;
+            visibility: visible;
+        }
+        
+        /* Accessibility */
+        .sr-only {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            white-space: nowrap;
+            border-width: 0;
+        }
     </style>
 </head>
 <body class="bg-gray-100 dark:bg-gray-900">
 
-    <div id="dashboard-container" class="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto text-gray-700 dark:text-gray-300">
+    <div id="loading-overlay">
+        <div class="spinner" role="status" aria-label="กำลังโหลดข้อมูล"></div>
+    </div>
+
+    <div id="dashboard-container" class="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto text-gray-700 dark:text-gray-300 opacity-0 transition-opacity duration-500">
         <!-- Header -->
         <header class="mb-8">
-            <div class="flex justify-between items-center flex-wrap gap-4">
+            <div class="flex justify-between items-start flex-wrap gap-4">
                 <div>
-                    <h1 class="text-3xl font-bold text-gray-900 dark:text-white">แดชบอร์ดสรุปข้อมูล WireLine & WDS Downtime</h1>
+                    <h1 class="text-3xl font-bold text-gray-900 dark:text-white">แดชบอร์ดสรุปข้อมูล Up/Down</h1>
                     <p class="text-gray-500 dark:text-gray-400 mt-1">ภาพรวมสถานะการเชื่อมต่อและประเด็นที่ต้องให้ความสำคัญ</p>
                 </div>
-                <div id="last-updated" class="text-sm text-right text-gray-500 dark:text-gray-400">
-                    <!-- Last updated time will be injected here -->
+                <div class="flex flex-col items-end gap-4">
+                     <div id="last-updated" class="text-sm text-right text-gray-500 dark:text-gray-400" aria-live="polite">
+                        <!-- Last updated time will be injected here -->
+                    </div>
+                    <div class="flex items-center gap-3 flex-wrap justify-end">
+                        <button id="refresh-btn" class="flex items-center space-x-2 bg-gray-500 hover:bg-gray-600 text-white text-sm font-semibold py-2 px-3 rounded-lg shadow-md transition-colors duration-300">
+                            <i data-lucide="refresh-cw" class="w-4 h-4"></i>
+                            <span class="sr-only">รีเฟรชข้อมูล</span>
+                        </button>
+                        <button id="download-all-btn" class="flex items-center space-x-2 bg-purple-500 hover:bg-purple-600 text-white text-sm font-semibold py-2 px-3 rounded-lg shadow-md transition-colors duration-300">
+                            <i data-lucide="download" class="w-4 h-4" aria-hidden="true"></i>
+                            <span>โหลดข้อมูลทั้งหมด</span>
+                        </button>
+                    </div>
                 </div>
             </div>
         </header>
 
-        <!-- KPIs -->
-        <div id="kpi-container" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-            <!-- KPIs will be injected here -->
-        </div>
+        <main>
+            <!-- KPIs -->
+            <section id="kpi-container" aria-labelledby="kpi-heading" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                <h2 id="kpi-heading" class="sr-only">ตัวชี้วัดประสิทธิภาพหลัก</h2>
+                <!-- KPIs will be injected here -->
+            </section>
 
-        <!-- Charts Row 1 -->
-        <div class="grid grid-cols-1 lg:grid-cols-5 gap-6 mb-8">
-            <div class="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-lg lg:col-span-2 chart-card">
-                <h3 class="text-lg font-semibold text-gray-800 dark:text-white mb-4">ภาพรวมสถานะ WireLine</h3>
-                <canvas id="wirelineStatusChart"></canvas>
-            </div>
-            <div class="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-lg lg:col-span-3 chart-card">
-                <h3 class="text-lg font-semibold text-gray-800 dark:text-white mb-4">10 อันดับสาขาที่ Downtime ยาวนานที่สุด</h3>
-                <div id="topDowntimeList" class="space-y-3 pr-2 overflow-y-auto h-[300px]">
-                    <!-- Downtime list will be injected here -->
+            <!-- Charts Row 1 -->
+            <section aria-labelledby="charts-row1-heading" class="grid grid-cols-1 lg:grid-cols-5 gap-6 mb-8">
+                <h2 id="charts-row1-heading" class="sr-only">แผนภูมิสรุปผลแถวที่ 1</h2>
+                <div class="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-lg lg:col-span-2 chart-card flex flex-col">
+                    <h3 class="text-lg font-semibold text-gray-800 dark:text-white mb-4">ประเภท Link ที่มีปัญหา</h3>
+                    <div class="relative flex-grow">
+                        <canvas id="linkTypeChart"></canvas>
+                    </div>
                 </div>
-            </div>
-        </div>
-
-        <!-- Charts Row 2 -->
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-            <div class="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-lg chart-card">
-                 <h3 class="text-lg font-semibold text-gray-800 dark:text-white mb-4">จำนวน Downtime ตามภาค</h3>
-                 <canvas id="regionChart"></canvas>
-            </div>
-             <div class="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-lg chart-card">
-                 <h3 class="text-lg font-semibold text-gray-800 dark:text-white mb-4">10 จังหวัดที่เกิด Downtime บ่อยที่สุด</h3>
-                 <canvas id="provinceChart"></canvas>
-            </div>
-        </div>
-        
-        <!-- Recent Events -->
-        <div class="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-lg mb-8">
-             <h3 class="text-lg font-semibold text-gray-800 dark:text-white mb-4">สรุปเหตุการณ์ Up/Down ล่าสุด (จาก Line data)</h3>
-             <div id="recent-events-container" class="max-h-96 overflow-y-auto">
-                <!-- Recent events accordion will be injected here -->
-             </div>
-        </div>
-
-        <!-- Attention Table -->
-        <div class="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-lg">
-            <div class="flex justify-between items-center mb-4 flex-wrap gap-2">
-                <h3 class="text-lg font-semibold text-gray-800 dark:text-white">รายการที่ต้องให้ความสนใจเป็นพิเศษ (WireLine)</h3>
-                <div class="flex items-center space-x-2">
-                    <i data-lucide="filter" class="w-5 h-5 text-gray-500"></i>
-                    <select id="cstm-filter" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500">
-                        <!-- Filter options will be injected here -->
-                    </select>
+                <div class="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-lg lg:col-span-3 chart-card flex flex-col">
+                    <h3 class="text-lg font-semibold text-gray-800 dark:text-white mb-4">10 อันดับสาขาที่เกิดปัญหาบ่อยที่สุด</h3>
+                    <div id="topIssuesList" class="space-y-3 pr-2 overflow-y-auto flex-grow">
+                        <!-- Top issues list will be injected here -->
+                    </div>
                 </div>
-            </div>
-            <div class="overflow-x-auto">
-                <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400">
-                    <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
-                        <tr>
-                            <th scope="col" class="px-6 py-3 cursor-pointer" data-sort="ID">
-                                <div class="flex items-center">ID <i data-lucide="chevron-down" class="h-4 w-4 ml-1 opacity-20"></i></div>
-                            </th>
-                            <th scope="col" class="px-6 py-3 cursor-pointer" data-sort="สาขา">
-                                <div class="flex items-center">สาขา <i data-lucide="chevron-down" class="h-4 w-4 ml-1 opacity-20"></i></div>
-                            </th>
-                            <th scope="col" class="px-6 py-3 cursor-pointer" data-sort="Status">
-                                <div class="flex items-center">สถานะ <i data-lucide="chevron-down" class="h-4 w-4 ml-1 opacity-20"></i></div>
-                            </th>
-                            <th scope="col" class="px-6 py-3 cursor-pointer" data-sort="CSTM">
-                                <div class="flex items-center">ผู้รับผิดชอบ <i data-lucide="chevron-down" class="h-4 w-4 ml-1 opacity-20"></i></div>
-                            </th>
-                        </tr>
-                    </thead>
-                    <tbody id="attention-table-body">
-                        <!-- Table rows will be injected here -->
-                    </tbody>
-                </table>
-            </div>
-        </div>
+            </section>
+
+            <!-- Charts Row 2 -->
+            <section aria-labelledby="charts-row2-heading" class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+                 <h2 id="charts-row2-heading" class="sr-only">แผนภูมิสรุปผลแถวที่ 2</h2>
+                <div class="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-lg chart-card flex flex-col">
+                   <h3 class="text-lg font-semibold text-gray-800 dark:text-white mb-4">จำนวนปัญหาตามภาค</h3>
+                   <div class="relative flex-grow">
+                       <canvas id="regionChart"></canvas>
+                    </div>
+                </div>
+                 <div class="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-lg chart-card flex flex-col">
+                   <h3 class="text-lg font-semibold text-gray-800 dark:text-white mb-4">10 จังหวัดที่เกิดปัญหาบ่อยที่สุด</h3>
+                   <div class="relative flex-grow">
+                       <canvas id="provinceChart"></canvas>
+                    </div>
+                </div>
+            </section>
+            
+            <!-- Recent Events -->
+            <section aria-labelledby="recent-events-heading" class="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-lg mb-8">
+                 <h2 id="recent-events-heading" class="text-lg font-semibold text-gray-800 dark:text-white mb-4">สรุปเหตุการณ์ Up/Down</h2>
+                 <div id="recent-events-container" class="max-h-96 overflow-y-auto">
+                     <!-- Recent events accordion will be injected here -->
+                 </div>
+            </section>
+
+            <!-- Attention Table -->
+            <section aria-labelledby="attention-table-heading" class="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-lg">
+                <div class="flex justify-between items-center mb-4 flex-wrap gap-2">
+                    <h2 id="attention-table-heading" class="text-lg font-semibold text-gray-800 dark:text-white">ตารางข้อมูลเหตุการณ์ทั้งหมด</h2>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400">
+                        <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
+                            <tr>
+                                <th scope="col" class="px-6 py-3">วันที่</th>
+                                <th scope="col" class="px-6 py-3">รอบ</th>
+                                <th scope="col" class="px-6 py-3">ประเภท Link</th>
+                                <th scope="col" class="px-6 py-3">รหัสร้าน</th>
+                                <th scope="col" class="px-6 py-3">ชื่อร้าน</th>
+                                <th scope="col" class="px-6 py-3">จังหวัด</th>
+                                <th scope="col" class="px-6 py-3">ภาค</th>
+                            </tr>
+                        </thead>
+                        <tbody id="attention-table-body">
+                            <!-- Table rows will be injected here -->
+                        </tbody>
+                    </table>
+                </div>
+                <div id="pagination-container" class="flex justify-center mt-4">
+                    <!-- Pagination controls will be injected here -->
+                </div>
+            </section>
+        </main>
     </div>
 
-    <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            // --- DATA ---
-            const wirelineRawData = [
-                { ID: 2167, สาขา: "02167 TK.25061907298", Status: "Monitor ปกติ", CSTM: "", Main: "V93883B", Backup: "WDS93770" },
-                { ID: 3032, สาขา: "03032 TK.25061903180", Status: "ส่งช่างตรวจสอบแล้วยัง Up&down/ อยู่ในช่วงวิเคราะห์เชิงลึก/ส่งช่างเปลี่ยน WAN", CSTM: "", Main: "V91220B", Backup: "WDS12011" },
-                { ID: 11771, สาขา: "11771 TK.25062307736", Status: "Monitor(มี Up&down 26/06 หลายรอบ)", CSTM: "", Main: "U16099", Backup: "WDS23706" },
-                { ID: 6017, สาขา: "06017 TK.25062307764", Status: "Monitor ปกติ", CSTM: "", Main: "U87750", Backup: "WDS13606" },
-                { ID: 7296, สาขา: "07296 TK.25062307773", Status: "Monitor ปกติ", CSTM: "", Main: "U14531", Backup: "WDS23507" },
-                { ID: 1680, สาขา: "01680 TK.25062307786", Status: "Monitor ปกติ", CSTM: "", Main: "V92328B", Backup: "WDS92215" },
-                { ID: 7393, สาขา: "07393 TK.25062307793", Status: "Monitor ปกติ", CSTM: "", Main: "U18022", Backup: "WDS24997" },
-                { ID: 4645, สาขา: "04645 TK.25062307817", Status: "Monitor ปกติ", CSTM: "", Main: "U13202", Backup: "WDS23451" },
-                { ID: 3853, สาขา: "03853 TK.25062307840", Status: "Monitor ปกติ", CSTM: "", Main: "U87553", Backup: "WDS14407" },
-                { ID: 3657, สาขา: "03657 TK.25062307854", Status: "Monitor ปกติ", CSTM: "", Main: "U19358", Backup: "WDS25553" },
-                { ID: 11208, สาขา: "11208 TK.25062307868", Status: "Monitor ปกติ", CSTM: "", Main: "U21031", Backup: "WDS27427" },
-                { ID: 11063, สาขา: "11063 TK.25062307879", Status: "Monitor ปกติ", CSTM: "", Main: "U20503", Backup: "WDS26780" },
-                { ID: 9984, สาขา: "09984 TK.25062307889", Status: "Monitor", CSTM: "", Main: "U17271", Backup: "WDS24639" },
-                { ID: 10808, สาขา: "10808 TK.25062307903", Status: "Monitor", CSTM: "", Main: "U21356", Backup: "WDS26829" },
-                { ID: 7550, สาขา: "07550 TK.25062307910", Status: "Monitor", CSTM: "", Main: "U17426", Backup: "WDS24684" },
-                { ID: 7191, สาขา: "07191 TK.25062307925", Status: "Monitor", CSTM: "", Main: "U17166", Backup: "WDS25158" },
-                { ID: 8710, สาขา: "08710 TK.25062307928", Status: "Monitor", CSTM: "", Main: "U17179", Backup: "WDS25173" },
-                { ID: 10460, สาขา: "10460", Status: "ส่งช่างตรวจสอบ/เร่งช่างให้ตรวจสอบด่วนเพิ่มเติมแล้ว", CSTM: "", Main: "U17895", Backup: "WDS24863" },
-                { ID: 10622, สาขา: "10622", Status: "Monitor", CSTM: "", Main: "V97052B", Backup: "WDS17963" },
-                { ID: 10679, สาขา: "10679", Status: "Monitor", CSTM: "", Main: "V15262B", Backup: "WDS21020" },
-                { ID: 13624, สาขา: "13624", Status: "Monitor", CSTM: "", Main: "V51179B", Backup: "WDS22583" },
-                { ID: 5193, สาขา: "5193 ท่าเรือแหลมเทียน 13", Status: "TT202506430505 กำลังเดินทางข้ามเกาะ/ปลั๊กไฟฟ้าลูกค้าชำรุด \n เจ้าหน้าที่ทำการย้ายปลั๊กใหม่", CSTM: "", Main: "U92884" },
-                { ID: 8537, สาขา: "8537 ชุมชนวัดคูยาง 13", Status: "Monitor", CSTM: "", Main: "U87650" },
-                { ID: 13078, สาขา: "13078 มศว.ประสานมิตร(ประตู 3) (BS) 11", Status: "Monitor", CSTM: "", Main: "V50223B" },
-                { ID: 13150, สาขา: "13150 สุขุมวิท-บ้านอำเภอ (RE) 7", Status: "Monitor", CSTM: "", Main: "U16229" },
-                { ID: 18570, สาขา: "18570 โป่งตาลอง(ปากช่อง) 8", Status: "Monitor" },
-                { ID: 11534, สาขา: "11534 กลางซอยศรีบุญเรือง 5", Status: "Monitor" },
-                { ID: 14985, สาขา: "14985 PTTOR ทุ่งเบญจา (RE) 5", Status: "Monitor" },
-                { ID: 1292, สาขา: "1292 ทรงสวัสดิ์ 5", Status: "Monitor" },
-                { ID: 1637, สาขา: "1637 ริเวอร์ปาร์ค 64", Status: "Monitor", CSTM: "Arunsuk" },
-                { ID: 11590, สาขา: "3 11590 ท่ามะนาว (RN) 8", Status: "Monitor", CSTM: "Arunsuk" },
-                { ID: 10630, สาขา: "4 10630 ซอย อบต.เทพารักษ์ 6", Status: "Monitor", CSTM: "Arunsuk" },
-                { ID: 9075, สาขา: "5 9075 ตลาดหนองปรือ 6", Status: "ประสานงาน SMC ส่งช่างแล้ว(ก๊อบ)", CSTM: "Arunsuk", Main: "U92012" },
-                { ID: 4926, สาขา: "1 4926 ม.เรือนสุข 2 คลอง 9 32", Status: "Monitor", CSTM: "Arunsuk" },
-                { ID: 18931, สาขา: "3 18931 ชุมชนตะกุด(สระบุรี) (RC) 6", Status: "Monitor", CSTM: "Anupong" },
-                { ID: 13077, สาขา: "4 13077 อ่อนนุช 66 จุด 2 (BS) 6", Status: "Monitor", CSTM: "Anupong" },
-                { ID: 14998, สาขา: "5 14998 คำชะอี 6", Status: "Monitor", CSTM: "Anupong" },
-                { ID: 13730, สาขา: "3 13730 ซอยธรรมศิริ (บางนา กม.25) (BS)", Status: "Monitor", CSTM: "Arunsuk" },
-                { ID: 14496, สาขา: "4 14496 แยกน้ำอ่าง", Status: "Monitor", CSTM: "Arunsuk" },
-                { ID: 16047, สาขา: "5 16047 Hop Inn บางนา", Status: "Monitor", CSTM: "Tipakorn", Main: "V57248B" },
-                { ID: 2385, สาขา: "2 2385 อารักษ์ 2", Status: "พี่ก๊อบได้ประสานงาน SMC ส่งช่างตรวจสอบ", CSTM: "Arunsuk", Main: "U17488" },
-                { ID: 10749, สาขา: "3 10749 สวนปาล์ม", Status: "Monitor", CSTM: "Arunsuk", Main: "U20678" },
-                { ID: 16887, สาขา: "4 16887 ริมปิงริเวอร์ไซด์(นครสวรรค์)", Status: "พี่ก๊อบได้ประสานงาน SMC ส่งช่างตรวจสอบ", CSTM: "Arunsuk", Main: "U99800" },
-                { ID: 15264, สาขา: "5 15264 ทะเลแก้ว (NC)", Status: "Monitor", CSTM: "Arunsuk", Main: "U96793" },
-                { ID: 13959, สาขา: "1 13959 Belle Park (BW)", Status: "พี่ก๊อบได้ประสานงาน SMC ส่งช่างตรวจสอบ", CSTM: "Tipakorn", Main: "V03237B" },
-                { ID: 4018, สาขา: "2 4018 ประดู่ 7", Status: "Monitor", CSTM: "Tipakorn", Main: "V93988B" },
-                { ID: 16593, สาขา: "3 16593 ปรีดีพนมยงค์ 41", Status: "Monitor", CSTM: "Tipakorn", Main: "V57963B" },
-                { ID: 5552, สาขา: "4 5552 บ้านคลองสวน", Status: "Monitor", CSTM: "Tipakorn", Main: "V97086B" },
-                { ID: 6706, สาขา: "5 6706 เซกา", Status: "Monitor", CSTM: "Tipakorn", Main: "U92802" },
-                { ID: 10644, สาขา: "1 10644 ปตท.แยกเวียงทอง", Status: "พี่ก๊อบได้ประสานงาน SMC ส่งช่างตรวจสอบ", CSTM: "Anupong", Main: "U17892" },
-                { ID: 10858, สาขา: "2 10858 อิสรภาพ 31", Status: "Monitor", CSTM: "Anupong", Main: "V15333B" },
-                { ID: 9992, สาขา: "3 9992 เทศบาล 4 ชัยนาท", Status: "Monitor", CSTM: "Anupong", Main: "U13186" },
-                { ID: 11145, สาขา: "4 11145 วังกรด", Status: "Monitor", CSTM: "Arunsuk", Main: "U16781" },
-                { ID: 14085, สาขา: "5 14085 Silom Terrace", Status: "Monitor", CSTM: "Arunsuk", Main: "V15220B" },
-                { ID: 16757, สาขา: "1 16757 ดอนบม", Status: "Monitor", CSTM: "Arunsuk", Main: "U99313" },
-                { ID: 1111, สาขา: "2 1111 ตลาดปากคลอง", Status: "Monitor", CSTM: "Arunsuk", Main: "V93863B" },
-                { ID: 6186, สาขา: "3 6186 ม.พฤกษาวิลล์ 63-พระราม 5", Status: "พี่ก๊อบได้ประสานงาน SMC ส่งช่างตรวจสอบ", CSTM: "Arunsuk", Main: "V85681B" },
-                { ID: 10691, สาขา: "4 10691 บ้านแม่สารป่าแดด (จ.ลำพูน)", Status: "Monitor", CSTM: "Arunsuk", Main: "U17897" },
-                { ID: 13474, สาขา: "5 13474 เด่นนครเรสซิเดนท์ เพชรเกษม 63", Status: "Monitor", CSTM: "Arunsuk", Main: "V99906B" },
-                { ID: 6300, สาขา: "1 6300 ทับกวาง", Status: "Monitor", CSTM: "Tipakorn", Main: "U16936" },
-                { ID: 16081, สาขา: "2 16081 PTTOR ทุ่งขวาง-พนัส (ทล.349)", Status: "Monitor", CSTM: "Tipakorn", Main: "U67732" },
-                { ID: 16740, สาขา: "3 16740 บ้านไสม่วง", Status: "Monitor", CSTM: "Tipakorn", Main: "U99207" },
-                { ID: 11685, สาขา: "4 11685 พีรพงษ์ (BW)", Status: "Monitor", CSTM: "Tipakorn", Main: "V24556B" },
-                { ID: 13098, สาขา: "5 13098 ถนนข้าวปลูก (RC)", Status: "Monitor", CSTM: "Tipakorn", Main: "U61365" },
-                { ID: 3921, สาขา: "1 3921 ตลาดโพธิ์สุวรรณ", Status: "Monitor", CSTM: "Tipakorn", Main: "V92837B" },
-                { ID: 10567, สาขา: "2 10567 พลมานีย์ จุด 4", Status: "Monitor", CSTM: "Tipakorn", Main: "V14346B" },
-                { ID: 11351, สาขา: "3 11351 บ้านสบเปิง (อ.แม่แตง)", Status: "Monitor", CSTM: "Tipakorn", Main: "U20995" },
-                { ID: 5057, สาขา: "4 5057 คำชะอี", Status: "Monitor", CSTM: "Tipakorn", Main: "U91348" },
-                { ID: 5282, สาขา: "5 5282 บ้านเหมืองง่า", Status: "Monitor", CSTM: "Tipakorn", Main: "U91897" },
-                { ID: 13886, สาขา: "1 13886 ปตท.หนองบัว (NC)", Status: "Monitor", CSTM: "Tipakorn", Main: "U93798" },
-                { ID: 12108, สาขา: "2 12108 พุทธมณฑลสาย 2 ซอย 2 (BW)", Status: "Monitor", CSTM: "Tipakorn", Main: "V20672B" },
-                { ID: 4312, สาขา: "3 4312 ซอยนวลจิตร จุด 2", Status: "Monitor", CSTM: "Tipakorn", Main: "V94419B" },
-                { ID: 4728, สาขา: "4 4728 นภาจรัส", Status: "Monitor", CSTM: "Tipakorn", Main: "U87773" },
-                { ID: 14222, สาขา: "5 14222 PTTOR ด่านซ้าย (NE)", Status: "Monitor", CSTM: "Tipakorn", Main: "U94145" },
-                { ID: 992, สาขา: "1 992 ตลาดสำเหร่", Status: "New (รอตรวจสอบ)", CSTM: "Tipakorn", Main: "U61115" },
-                { ID: 15414, สาขา: "2 15414 ธาราคอนโดเทล 3 (NE)", Status: "New (รอตรวจสอบ)" },
-                { ID: 8572, สาขา: "3 8572 รพ.กรุงเทพ(พลาซ่า)", Status: "New (รอตรวจสอบ)" },
-                { ID: 13419, สาขา: "4 13419 GAYSORN OFFICE TOWER (BW)", Status: "New (รอตรวจสอบ)" },
-                { ID: 338, สาขา: "5 338 ตลาดพลู", Status: "New (รอตรวจสอบ)" },
-                { ID: 8145, สาขา: "2 8145 อาคารสมเด็จพระเทพรัตน์(ร.พ.รามาฯ)", Status: "New (รอตรวจสอบ)" },
-                { ID: 13428, สาขา: "3 13428 พัฒนานิคมสาย 4 (เขาสูง) (RC)", Status: "New (รอตรวจสอบ)" },
-                { ID: 16045, สาขา: "4 16045 PTTOR แยกบ้านบึง", Status: "New (รอตรวจสอบ)" },
-                { ID: 17058, สาขา: "5 17058 ขนงพระใต้", Status: "New (รอตรวจสอบ)" },
-                { ID: 4673, สาขา: "1 4673 อดุลยาราม", Status: "New (รอตรวจสอบ)" },
-                { ID: 11107, สาขา: "2 11107 สุขุมวิท 66 (BS)", Status: "New (รอตรวจสอบ)" },
-                { ID: 11942, สาขา: "3 11942 SV พระราม 3", Status: "New (รอตรวจสอบ)" },
-                { ID: 11470, สาขา: "4 11470 คลองตำหรุ 5 (ชลบุรี)", Status: "New (รอตรวจสอบ)" },
-                { ID: 3648, สาขา: "5 3648 ซอยบาดาล", Status: "New (รอตรวจสอบ)" },
-                { ID: 4674, สาขา: "1 4674 เจริญกรุง 70", Status: "New (รอตรวจสอบ)" },
-                { ID: 14000, สาขา: "2 14000 ไนท์หนองคาย (NE)", Status: "New (รอตรวจสอบ)" },
-                { ID: 7349, สาขา: "3 7349 ถนนสามล้าน", Status: "New (รอตรวจสอบ)" },
-                { ID: 11966, สาขา: "4 11966 RSU Tower", Status: "New (รอตรวจสอบ)" },
-                { ID: 14133, สาขา: "5 14133 ชายหาดหนองแจง(ชะอำใต้) (SN)", Status: "New (รอตรวจสอบ)" },
-                { ID: 4211, สาขา: "1 4211 ปตท.แม่ริม", Status: "New (รอตรวจสอบ)" },
-                { ID: 1403, สาขา: "2 1403 โรงพยาบาลเจ้าพระยาอภัยภูเบศร์", Status: "New (รอตรวจสอบ)" },
-                { ID: 4157, สาขา: "3 4157 บางปอซอย 4", Status: "New (รอตรวจสอบ)" },
-                { ID: 5372, สาขา: "4 5372 พุทธมณฑลสาย 1 ซอย 4", Status: "New (รอตรวจสอบ)" },
-                { ID: 6485, สาขา: "5 6485 พรประภานิมิตร ซอย 22", Status: "New (รอตรวจสอบ)" },
-                { ID: 94, สาขา: "1 94 จรัญสนิทวงศ์ 37", Status: "New (รอตรวจสอบ)" },
-                { ID: 10492, สาขา: "2 10492 ปตท.ไชยปราการ", Status: "New (รอตรวจสอบ)" },
-                { ID: 13141, สาขา: "3 13141 LPN วิลล์ นครอินทร์-ริเวอร์วิว", Status: "New (รอตรวจสอบ)" },
-                { ID: 2512, สาขา: "4 2512 ราม 51/2", Status: "New (รอตรวจสอบ)" },
-                { ID: 11504, สาขา: "5 11504 บ้านในวก (RS)", Status: "New (รอตรวจสอบ)" },
-                { ID: 13652, สาขา: "1 13652 โรงพยาบาลมหาราชนครเชียงใหม่ (S เชียงใหม่)", Status: "New (รอตรวจสอบ)" },
-                { ID: 9214, สาขา: "2 9214 ม.จรัญวิลล่า 1", Status: "New (รอตรวจสอบ)" },
-                { ID: 14272, สาขา: "3 14272 บ้านโป่งไผ่ (ศรีมหาโพธิ์) (RE)", Status: "New (รอตรวจสอบ)" },
-                { ID: 8341, สาขา: "4 8341 ศิริสุข 1", Status: "New (รอตรวจสอบ)" },
-                { ID: 3028, สาขา: "5 3028 ปตท.ปัทมานนท์", Status: "New (รอตรวจสอบ)" },
-                { ID: 6767, สาขา: "1 6767 ตลาดกระทิงแดง", Status: "New (รอตรวจสอบ)" },
-                { ID: 9365, สาขา: "2 9365 ปตท.ตลาดตะพง (ระยอง)", Status: "New (รอตรวจสอบ)" },
-                { ID: 4211, สาขา: "3 4211 ปตท.แม่ริม", Status: "New (รอตรวจสอบ)" },
-                { ID: 10025, สาขา: "4 10025 LPN อ่อนนุช 46", Status: "New (รอตรวจสอบ)" },
-                { ID: 13040, สาขา: "5 13040 สบาย ศาลายา (BW)", Status: "New (รอตรวจสอบ)" }
-            ];
-            const downtimeRawData = [
-                { "Store Name": "ร้านเซเว่น สาขา โพธิ์แก้ว3แยก17", emailDate: "07/07/2025", Router: "Cisco Router", Downtime: "768D 15:59", "Ciruit WDS Status": "Inactive", "CSTM STATUS": "ตรวจสอบแล้ว WDS ยกเลิก / Un-monitor WDS ออกจาก Web MNS แล้ว/ ประสาน AE ตรวจสอบต่อไป", "Ciruit Main": "V94175B", "Ciruit WDS": "WDS94062", province: "กรุงเทพมหานคร", region: "ภาคกลาง" },
-                { "Store Name": "ร้านเซเว่น สาขา จอมทองซอย15", emailDate: "07/07/2025", Router: "Oneaccress Router", Downtime: "705D 7:19", "Ciruit WDS Status": "Inactive", "CSTM STATUS": "ตรวจสอบแล้ว WDS ยกเลิก / Un-monitor WDS ออกจาก Web MNS แล้ว/ ประสาน AE ตรวจสอบต่อไป", "Ciruit Main": "V91007B", "Ciruit WDS": "WDS15327", province: "กรุงเทพมหานคร", region: "ภาคกลาง" },
-                { "Store Name": "ร้านเซเว่น สาขาปตท.ธูปเตมีย์ (FLAGSHIP)", emailDate: "07/07/2025", Router: "Oneaccress Router", Downtime: "194D 18:54", "Ciruit WDS Status": "Inactive", "CSTM STATUS": "ตรวจสอบแล้ว WDS ยกเลิก / Un-monitor WDS ออกจาก Web MNS แล้ว/ ประสาน AE ตรวจสอบต่อไป", "Ciruit Main": "V91263B", "Ciruit WDS": "WDS15509", province: "ปทุมธานี", region: "ภาคกลาง" },
-                { "Store Name": "ร้านเซเว่น สาขา รพ.กรุงเทพภูเก็ต", emailDate: "07/07/2025", Router: "Cisco Router", Downtime: "194D 13:32", "Ciruit WDS Status": "Active", "CSTM STATUS": "ตรวจสอบแล้ว Circuit Main ยกเลิก / ประสาน AE ตรวจสอบต่อไป", "Ciruit Main": "U61475", "Ciruit WDS": "WDS21105", province: "ภูเก็ต", region: "ภาคใต้" },
-                { "Store Name": "ร้านเซเว่น สาขา ยโสธร", emailDate: "07/07/2025", Router: "Cisco Router", Downtime: "187D 11:36", "Ciruit WDS Status": "Active", "CSTM STATUS": "ตรวจสอบแล้ว Circuit Main ยกเลิก / ประสาน AE ตรวจสอบต่อไป", "Ciruit Main": "U17881", "Ciruit WDS": "WDS24849", province: "ยโสธร", region: "ภาคตะวันออกเฉียงเหนือ" },
-                { "Store Name": "ร้านเซเว่น สาขา กองพลทหารราบบ่อทอง (POC Auto IVR)", emailDate: "07/07/2025", Router: "Cisco Router", Downtime: "164D 16:05", "Ciruit WDS Status": "Active", "CSTM STATUS": "ตรวจสอบแล้ว Circuit Main ยกเลิก / ประสาน AE ตรวจสอบต่อไป", "Ciruit Main": "U19509", "Ciruit WDS": "WDS25581", province: "ปราจีนบุรี", region: "ภาคตะวันออก" },
-                { "Store Name": "ร้านเซเว่น สาขา บ้านฉาง", emailDate: "07/07/2025", Router: "Cisco Router", Downtime: "156D 17:41", "Ciruit WDS Status": "Active", "CSTM STATUS": "ตรวจสอบแล้ว Circuit Main ยกเลิก / ประสาน AE ตรวจสอบต่อไป", "Ciruit Main": "U17288", "Ciruit WDS": "WDS24655", province: "ระยอง", region: "ภาคตะวันออก" },
-                { "Store Name": "ร้านเซเว่น สาขา PTTOR ประชาอุทิศ-คู่สร้าง", emailDate: "07/07/2025", Router: "Cisco Router", Downtime: "139D 16:56", "Ciruit WDS Status": "Inactive", "CSTM STATUS": "ตรวจสอบแล้ว WDS ยกเลิก / Un-monitor WDS ออกจาก Web MNS แล้ว/ ประสาน AE ตรวจสอบต่อไป", "Ciruit Main": "V59573B", "Ciruit WDS": "WDS38442", province: "สมุทรปราการ", region: "ภาคกลาง" },
-                { "Store Name": "ร้านเซเว่น สาขา ปตท.นครศรีปิโตรเลี่ยม", emailDate: "07/07/2025", Router: "Cisco Router", Downtime: "139D 16:53", "Ciruit WDS Status": "Active", "CSTM STATUS": null, "Ciruit Main": "U19424", "Ciruit WDS": "WDS25454", province: "นครศรีธรรมราช", region: "ภาคใต้" },
-                { "Store Name": "ร้านเซเว่น สาขา เทศบาลนครอุดรธานี", emailDate: "07/07/2025", Router: "Cisco Router", Downtime: "137D 21:18", "Ciruit WDS Status": "Inactive", "CSTM STATUS": "ตรวจสอบแล้ว WDS ยกเลิก / Un-monitor WDS ออกจาก Web MNS แล้ว/ ประสาน AE ตรวจสอบต่อไป", "Ciruit Main": "U18002", "Ciruit WDS": "WDS24977", province: "อุดรธานี", region: "ภาคตะวันออกเฉียงเหนือ" },
-                { "Store Name": "ร้านเซเว่น สาขา ปตท.ราชภัฎเพชรบุรี", emailDate: "07/07/2025", Router: "Cisco Router", Downtime: "137D 21:18", "Ciruit WDS Status": "Active", "CSTM STATUS": "ตรวจสอบแล้ว Circuit Main ยกเลิก / ประสาน AE ตรวจสอบต่อไป", "Ciruit Main": "U17934", "Ciruit WDS": "WDS24905", province: "เพชรบุรี", region: "ภาคตะวันตก" },
-                { "Store Name": "ร้านเซเว่น สาขา ชุมชนหนองหลวง", emailDate: "07/07/2025", Router: "Cisco Router", Downtime: "137D 21:18", "Ciruit WDS Status": "Inactive", "CSTM STATUS": "ตรวจสอบแล้ว WDS ยกเลิก / Un-monitor WDS ออกจาก Web MNS แล้ว/ ประสาน AE ตรวจสอบต่อไป", "Ciruit Main": "U17471", "Ciruit WDS": "WDS24701", province: "ตาก", region: "ภาคเหนือ" },
-                { "Store Name": "ร้านเซเว่น สาขา ชุมชนดินสอพอง", emailDate: "07/07/2025", Router: "Cisco Router", Downtime: "137D 21:18", "Ciruit WDS Status": "Active", "CSTM STATUS": "ตรวจสอบแล้ว Circuit Main ยกเลิก / ประสาน AE ตรวจสอบต่อไป", "Ciruit Main": "U17889", "Ciruit WDS": "WDS24856", province: "ลพบุรี", region: "ภาคกลาง" },
-                { "Store Name": "ร้านเซเว่น สาขา อำเภอเมืองประจวบ 2", emailDate: "07/07/2025", Router: "Cisco Router", Downtime: "137D 21:18", "Ciruit WDS Status": "Active", "CSTM STATUS": "ตรวจสอบแล้ว Circuit Main ยกเลิก / ประสาน AE ตรวจสอบต่อไป", "Ciruit Main": "U17497", "Ciruit WDS": "WDS24721", province: "ประจวบคีรีขันธ์", region: "ภาคตะวันตก" },
-                { "Store Name": "ร้านเซเว่น สาขา ชุมชนวัดแก่งขนุน", emailDate: "07/07/2025", Router: "Cisco Router", Downtime: "137D 21:18", "Ciruit WDS Status": "Inactive", "CSTM STATUS": "ตรวจสอบแล้ว WDS ยกเลิก / Un-monitor WDS ออกจาก Web MNS แล้ว/ ประสาน AE ตรวจสอบต่อไป", "Ciruit Main": "U10134", "Ciruit WDS": "WDS24875", province: "สระบุรี", region: "ภาคกลาง" },
-                { "Store Name": "ร้านเซเว่น สาขา ถนนอินทวโรรส", emailDate: "07/07/2025", Router: "Cisco Router", Downtime: "137D 21:18", "Ciruit WDS Status": "Active", "CSTM STATUS": "ตรวจสอบแล้ว Circuit Main ยกเลิก / ประสาน AE ตรวจสอบต่อไป", "Ciruit Main": "U17168", "Ciruit WDS": "WDS25160", province: "เชียงใหม่", region: "ภาคเหนือ" },
-                { "Store Name": "ร้านเซเว่น สาขา อ.เมืองพะเยา", emailDate: "07/07/2025", Router: "Oneaccress Router", Downtime: "137D 21:18", "Ciruit WDS Status": "Inactive", "CSTM STATUS": "ตรวจสอบแล้ว WDS ยกเลิก / Un-monitor WDS ออกจาก Web MNS แล้ว/ ประสาน AE ตรวจสอบต่อไป", "Ciruit Main": "U16541", "Ciruit WDS": "WDS23763", province: "พะเยา", region: "ภาคเหนือ" },
-                { "Store Name": "ร้านเซเว่น สาขา ถนนกองพล 10", emailDate: "07/07/2025", Router: "Oneaccress Router", Downtime: "137D 21:18", "Ciruit WDS Status": "Inactive", "CSTM STATUS": "ตรวจสอบแล้ว WDS ยกเลิก / Un-monitor WDS ออกจาก Web MNS แล้ว/ ประสาน AE ตรวจสอบต่อไป", "Ciruit Main": "U16001", "Ciruit WDS": "WDS23554", province: "นครราชสีมา", region: "ภาคตะวันออกเฉียงเหนือ" },
-                { "Store Name": "ร้านเซเว่น สาขา พิริยาลัย", emailDate: "07/07/2025", Router: "Oneaccress Router", Downtime: "137D 21:18", "Ciruit WDS Status": "Active", "CSTM STATUS": "ตรวจสอบแล้ว Circuit Main ยกเลิก / ประสาน AE ตรวจสอบต่อไป", "Ciruit Main": "U16539", "Ciruit WDS": "WDS23762", province: "แพร่", region: "ภาคเหนือ" },
-                { "Store Name": "ร้านเซเว่น สาขา หนองโพตาคลี", emailDate: "07/07/2025", Router: "Cisco Router", Downtime: "137D 21:18", "Ciruit WDS Status": "Inactive", "CSTM STATUS": "ตรวจสอบแล้ว WDS ยกเลิก / Un-monitor WDS ออกจาก Web MNS แล้ว/ ประสาน AE ตรวจสอบต่อไป", "Ciruit Main": "U13458", "Ciruit WDS": "WDS23482", province: "นครสวรรค์", region: "ภาคกลาง" }
-            ];
-            const lineDataRaw = `
-                15:32 อ-เ-เอ @ก๊อบวีรวงศ์-TRUE รบกวนช่วยตรวจสอบ Main Link ของร้านสาขาที่มีจำนวน UP/Down บ่อยครั้ง Last 4 hours โดยมีรายละเอียดตามไฟล์แนบครับ 01/07/2025(บ่าย)                                                                                                     ลำดับ\t รหัสร้าน(4G)\t ชื่อร้าน 1\t 6300\t ทับกวาง 2\t 16081\t PTTOR ทุ่งขวาง-พนัส (ทล.349)  3\t 16740\t บ้านไสม่วง 4\t 11685\t พีรพงษ์ (BW) 5\t 13098\t ถนนข้าวปลูก (RC)
-                15:32 อ-เ-เอ @ก๊อบวีรวงศ์-TRUE รบกวนช่วยตรวจสอบ Backup 4G ของร้านสาขาที่มีจำนวน UP/Down บ่อยครั้ง Last 4 hours โดยมีรายละเอียดตามไฟล์แนบครับ 01/07/2025(บ่าย) ลำดับ รหัสร้าน(4G) ชื่อร้าน
-                1 13367 ชุมชนบางลึก
-                2 6636 ท่าทอง
-                3 8484 ปตท.คีรีมาศ
-                4 9188 สี่แยกบ่อนไก่ จุด 2
-                5 15903 ซอยบางเทา 2
-                09:38 อ-เ-เอ @ก๊อบวีรวงศ์-TRUE รบกวนช่วยตรวจสอบ Main Link ของร้านสาขาที่มีจำนวน UP/Down บ่อยครั้ง Last 4 hours โดยมีรายละเอียดตามไฟล์แนบครับ 02/07/2025(เช้า)                                                                                                ลำดับ\t รหัสร้าน(4G)\t ชื่อร้าน 1\t 3921\t ตลาดโพธิ์สุวรรณ 2\t 10567\t พลมานีย์ จุด 4 3\t 11351\t บ้านสบเปิง (อ.แม่แตง) 4\t 5057\t คำชะอี 5\t 5282\t บ้านเหมืองง่า
-                09:39 อ-เ-เอ @ก๊อบวีรวงศ์-TRUE รบกวนช่วยตรวจสอบ Backup 4G ของร้านสาขาที่มีจำนวน UP/Down บ่อยครั้ง Last 4 hours โดยมีรายละเอียดตามไฟล์แนบครับ 02/07/2025(เช้า) ลำดับ รหัสร้าน(4G) ชื่อร้าน
-                1 15947 ปากทางโรงเรียนการบินกำแพงแสน
-                2 12003 ปตท.แม่ปะ
-                3 15850 ร้านค้าสวัสดิการค่ายเขตอุดมศักดิ์ (SN)
-            `;
+    <script type="module">
+        // --- Application State and Configuration ---
+        const app = {
+            state: {
+                allEventsData: [],
+                charts: {},
+                pagination: {
+                    currentPage: 1,
+                    itemsPerPage: 10,
+                }
+            },
 
-            // --- DATA PROCESSING ---
-            const processData = () => {
-                const attentionItems = wirelineRawData.filter(d => d.Status && d.Status !== 'Monitor ปกติ' && d.Status !== 'Monitor');
-                const totalDowntimeIncidents = downtimeRawData.length;
-                const routerCounts = downtimeRawData.reduce((acc, d) => {
-                    if (d.Router) acc[d.Router] = (acc[d.Router] || 0) + 1;
-                    return acc;
-                }, {});
-                const mostProblematicRouter = Object.keys(routerCounts).length > 0 ? Object.keys(routerCounts).reduce((a, b) => routerCounts[a] > routerCounts[b] ? a : b, 'N/A') : 'N/A';
-                const regionCounts = downtimeRawData.reduce((acc, d) => {
-                    if (d.region) acc[d.region] = (acc[d.region] || 0) + 1;
-                    return acc;
-                }, {});
-                const mostProblematicRegion = Object.keys(regionCounts).length > 0 ? Object.keys(regionCounts).reduce((a, b) => regionCounts[a] > regionCounts[b] ? a : b, 'N/A') : 'N/A';
-                const statusCounts = wirelineRawData.reduce((acc, d) => {
-                    let simpleStatus = d.Status;
-                    if (!simpleStatus) simpleStatus = 'ไม่มีสถานะ';
-                    else if (simpleStatus.includes('Monitor')) simpleStatus = 'Monitor';
-                    else if (simpleStatus.includes('New')) simpleStatus = 'New (รอตรวจสอบ)';
-                    else simpleStatus = 'ต้องดำเนินการ';
-                    acc[simpleStatus] = (acc[simpleStatus] || 0) + 1;
-                    return acc;
-                }, {});
-                const wirelineStatusData = Object.keys(statusCounts).map(key => ({ name: key, value: statusCounts[key] }));
-                const parseDowntime = (downtimeStr) => {
-                    if (!downtimeStr || typeof downtimeStr !== 'string') return 0;
-                    const parts = downtimeStr.match(/(\d+)D/);
-                    return parts ? parseInt(parts[1], 10) : 0;
-                };
-                const topDowntimes = downtimeRawData
-                    .map(d => ({ ...d, days: parseDowntime(d.Downtime), name: d["Store Name"] }))
-                    .sort((a, b) => b.days - a.days)
-                    .slice(0, 10);
-                const regionChartData = Object.entries(regionCounts).map(([name, value]) => ({ name, value })).sort((a, b) => b.value - a.value);
-                const provinceCounts = downtimeRawData.reduce((acc, d) => {
-                    if (d.province) acc[d.province] = (acc[d.province] || 0) + 1;
-                    return acc;
-                }, {});
-                const provinceChartData = Object.entries(provinceCounts).map(([name, value]) => ({ name, value })).sort((a, b) => b.value - a.value).slice(0, 10);
-                const parseLineData = (text) => {
-                    const sections = text.split(/\d{2}:\d{2} อ-เ-เอ @ก๊อบวีรวงศ์-TRUE/g).filter(Boolean);
-                    const events = {};
-                    sections.forEach(section => {
-                        const dateMatch = section.match(/(\d{2}\/\d{2}\/\d{4}\(.\S+\))/);
-                        const typeMatch = section.match(/ตรวจสอบ (Main Link|Backup 4G)/);
-                        if (!dateMatch || !typeMatch) return;
-                        const date = dateMatch[1];
-                        const type = typeMatch[1];
-                        if (!events[date]) {
-                            events[date] = { main: [], backup: [] };
-                        }
-                        const lines = section.split('\n').filter(line => /^\d+\s+\d+/.test(line.trim()));
-                        const stores = lines.map(line => {
-                            const parts = line.trim().split(/\s+/);
-                            return { id: parts[1], name: parts.slice(2).join(' ') };
+            // --- Data Fetching and Parsing ---
+            async fetchData() {
+                const csvData = `วันที่ (Date),รอบ (Period),ประเภท Link (Link Type),รหัสร้าน (Store ID),ชื่อร้าน (Store Name),จังหวัด (Province),ภาค (Region)
+2568-06-24,เช้า,Main Link (FTTX),10460,บ้านป่าเป้า (จ.ลำพูน),ลำพูน,ภาคเหนือ
+2568-06-24,เช้า,Main Link (FTTX),3032,Booth ซอยลูกหลวง,กรุงเทพมหานคร,ภาคกลาง
+2568-06-24,เช้า,Main Link (FTTX),10622,LPN ศรีนครินทร์-หัวหมาก,กรุงเทพมหานคร,ภาคกลาง
+2568-06-24,เช้า,Main Link (FTTX),10679,รพ.สมิติเวช ศรีนครินทร์,กรุงเทพมหานคร,ภาคกลาง
+2568-06-24,เช้า,Main Link (FTTX),13624,หมู่บ้านดีพร้อม(ซอยพุฒสี) (BS),สมุทรปราการ,ภาคกลาง
+2568-06-24,เช้า,Backup 4G,13652,โรงพยาบาลมหาราชนครเชียงใหม่ (S เชียงใหม่),เชียงใหม่,ภาคเหนือ
+2568-06-24,เช้า,Backup 4G,11208,ปตท.เชียงใหม่-ดอยสะเก็ด,เชียงใหม่,ภาคเหนือ
+2568-06-24,เช้า,Backup 4G,3853,อำเภอวังเหนือ,ลำปาง,ภาคเหนือ
+2568-06-24,เช้า,Backup 4G,16789,ชุมชนดอนยายหอม (นครปฐม),นครปฐม,ภาคกลาง
+2568-06-24,เช้า,Backup 4G,9984,หัวถนน ซ. 11,นครศรีธรรมราช,ภาคใต้
+2568-06-24,เช้า,Backup 4G,7550,หนองดินแดง,นครปฐม,ภาคกลาง
+2568-06-24,เช้า,Backup 4G,4645,ห้าแยกสันติธรรม 2,เชียงใหม่,ภาคเหนือ
+2568-06-24,เช้า,Backup 4G,11063,ดอนตะโก,ราชบุรี,ภาคตะวันตก
+2568-06-24,เช้า,Backup 4G,15994,ซอยโรงเหล็ก จุด 2,นครศรีธรรมราช,ภาคใต้
+2568-06-24,เช้า,Backup 4G,9742,ชุมตาบง,นครสวรรค์,ภาคกลาง
+2568-06-24,บ่าย,Main Link (FTTX),5193,ท่าเรือแหลมเทียน,ตราด,ภาคตะวันออก
+2568-06-24,บ่าย,Main Link (FTTX),8537,ชุมชนวัดคูยาง,กำแพงเพชร,ภาคกลาง
+2568-06-24,บ่าย,Main Link (FTTX),13078,มศว.ประสานมิตร(ประตู 3) (BS),กรุงเทพมหานคร,ภาคกลาง
+2568-06-24,บ่าย,Main Link (FTTX),3032,Booth ซอยลูกหลวง,ชลบุรี,ภาคตะวันออก
+2568-06-24,บ่าย,Main Link (FTTX),13150,สุขุมวิท-บ้านอำเภอ (RE),ราชบุรี,ภาคตะวันตก
+2568-06-24,บ่าย,Backup 4G,4645,ห้าแยกสันติธรรม 2,สุราษฎร์ธานี,ภาคใต้
+2568-06-24,บ่าย,Backup 4G,6837,แยกห้วยไผ่,สุราษฎร์ธานี,ภาคใต้
+2568-06-24,บ่าย,Backup 4G,16922,ลีเล็ด (ท่าฉาง),สุพรรณบุรี,ภาคกลาง
+2568-06-24,บ่าย,Backup 4G,11208,ปตท.เชียงใหม่-ดอยสะเก็ด,ราชบุรี,ภาคตะวันตก
+2568-06-24,บ่าย,Backup 4G,3010,ปตท.ตลาดเมืองใหม่,สุราษฎร์ธานี,ภาคใต้
+2568-06-24,บ่าย,Backup 4G,8628,ปตท.ทุ่งคอก,สระบุรี,ภาคกลาง
+2568-06-24,บ่าย,Backup 4G,6539,ปตท.จิงโจ้,ราชบุรี,ภาคตะวันตก
+2568-06-24,บ่าย,Backup 4G,3126,สามแยกแหลมดิน 1,นครราชสีมา,ภาคตะวันออกเฉียงเหนือ
+2568-06-24,บ่าย,Backup 4G,3588,ชุมชนวัดบ้านอ้อย,สมุทรปราการ,ภาคกลาง
+2568-06-24,บ่าย,Backup 4G,9628,อำเภอบางแพ,จันทบุรี,ภาคตะวันออก
+2568-06-25,เช้า,Main Link (FTTX),10460,บ้านป่าเป้า (จ.ลำพูน),กรุงเทพมหานคร,ภาคกลาง
+2568-06-25,เช้า,Main Link (FTTX),18570,โป่งตาลอง(ปากช่อง),กาญจนบุรี,ภาคตะวันตก
+2568-06-25,เช้า,Main Link (FTTX),11534,กลางซอยศรีบุญเรือง,ลพบุรี,ภาคกลาง
+2568-06-25,เช้า,Main Link (FTTX),14985,PTTOR ทุ่งเบญจา (RE),สระบุรี,ภาคกลาง
+2568-06-25,เช้า,Main Link (FTTX),1292,ทรงสวัสดิ์,สมุทรสาคร,ภาคกลาง
+2568-06-25,เช้า,Backup 4G,4645,ห้าแยกสันติธรรม 2,สมุทรสาคร,ภาคกลาง
+2568-06-25,เช้า,Backup 4G,9742,ชุมตาบง,เชียงราย,ภาคเหนือ
+2568-06-25,เช้า,Backup 4G,9628,อำเภอบางแพ,กรุงเทพมหานคร,ภาคกลาง
+2568-06-25,เช้า,Backup 4G,2876,ถนนแม่น้ำแคว,กรุงเทพมหานคร,ภาคกลาง
+2568-06-25,เช้า,Backup 4G,6402,ลำนารายณ์ 3,สระบุรี,ภาคกลาง
+2568-06-25,เช้า,Backup 4G,10652,ปตท.พหลโยธินพระพุทธบาท,อุบลราชธานี,ภาคตะวันออกเฉียงเหนือ
+2568-06-25,เช้า,Backup 4G,15994,ซอยโรงเหล็ก จุด 2,สุพรรณบุรี,ภาคกลาง
+2568-06-25,เช้า,Backup 4G,7566,โรงพยาบาลเอกชัย,นครปฐม,ภาคกลาง
+2568-06-25,เช้า,Backup 4G,300,มหาชัย 2,นครศรีธรรมราช,ภาคใต้
+2568-06-25,เช้า,Backup 4G,10587,ตลาดป่ายาง,นครปฐม,ภาคกลาง
+2568-06-25,บ่าย,Main Link (FTTX),10460,บ้านป่าเป้า (จ.ลำพูน),ปทุมธานี,ภาคกลาง
+2568-06-25,บ่าย,Main Link (FTTX),13142,บางแวก-สาย2(ซอยกล้วยไม้)BW,ลพบุรี,ภาคกลาง
+2568-06-25,บ่าย,Main Link (FTTX),2426,นานาเหนือ (สุขุมวิท 3),สมุทรปราการ,ภาคกลาง
+2568-06-25,บ่าย,Main Link (FTTX),15405,ชุมชนเฟื่องฟ้า(ทับกวาง) (NC),ชลบุรี,ภาคตะวันออก
+2568-06-25,บ่าย,Main Link (FTTX),16586,ดอนมดแดง,นครปฐม,ภาคกลาง
+2568-06-25,บ่าย,Backup 4G,4645,ห้าแยกสันติธรรม 2,พระนครศรีอยุธยา,ภาคกลาง
+2568-06-25,บ่าย,Backup 4G,15994,ซอยโรงเหล็ก จุด 2,สุพรรณบุรี,ภาคกลาง
+2568-06-25,บ่าย,Backup 4G,16767,ตลาดสวนแตง,ปทุมธานี,ภาคกลาง
+2568-06-25,บ่าย,Backup 4G,6539,ปตท.จิงโจ้,สระบุรี,ภาคกลาง
+2568-06-25,บ่าย,Backup 4G,2876,ถนนแม่น้ำแคว,กรุงเทพมหานคร,ภาคกลาง
+2568-06-25,บ่าย,Backup 4G,9628,อำเภอบางแพ,มุกดาหาร,ภาคตะวันออกเฉียงเหนือ
+2568-06-25,บ่าย,Backup 4G,10652,ปตท.พหลโยธินพระพุทธบาท,พิจิตร,ภาคกลาง
+2568-06-25,บ่าย,Backup 4G,9271,ลาดปลาเค้า (นครปฐม),เชียงใหม่,ภาคเหนือ
+2568-06-25,บ่าย,Backup 4G,11045,พรุฉิมพลี ซอย 1,ชุมพร,ภาคใต้
+2568-06-25,บ่าย,Backup 4G,10975,ชุมชนธรรมศาลา,พระนครศรีอยุธยา,ภาคกลาง
+2568-06-26,เช้า,Main Link (FTTX),1637,ริเวอร์ปาร์ค,ประจวบคีรีขันธ์,ภาคตะวันตก
+2568-06-26,เช้า,Main Link (FTTX),10460,บ้านป่าเป้า (จ.ลำพูน),เชียงใหม่,ภาคเหนือ
+2568-06-26,เช้า,Main Link (FTTX),11590,ท่ามะนาว (RN),สมุทรสาคร,ภาคกลาง
+2568-06-26,เช้า,Main Link (FTTX),10630,ซอย อบต.เทพารักษ์,เชียงใหม่,ภาคเหนือ
+2568-06-26,เช้า,Main Link (FTTX),9075,ตลาดหนองปรือ,ราชบุรี,ภาคตะวันตก
+2568-06-26,เช้า,Backup 4G,8056,ดอนขนาก,อุดรธานี,ภาคตะวันออกเฉียงเหนือ
+2568-06-26,เช้า,Backup 4G,9628,อำเภอบางแพ,สมุทรปราการ,ภาคกลาง
+2568-06-26,เช้า,Backup 4G,9742,ชุมตาบง,อุตรดิตถ์,ภาคเหนือ
+2568-06-26,เช้า,Backup 4G,2876,ถนนแม่น้ำแคว,กรุงเทพมหานคร,ภาคกลาง
+2568-06-26,เช้า,Backup 4G,4477,ชุมชนวัดคานหาม 4,สมุทรสาคร,ภาคกลาง
+2568-06-26,เช้า,Backup 4G,16922,ลีเล็ด (ท่าฉาง),สมุทรสาคร,ภาคกลาง
+2568-06-26,เช้า,Backup 4G,10587,ตลาดป่ายาง,อุตรดิตถ์,ภาคเหนือ
+2568-06-26,เช้า,Backup 4G,11045,พรุฉิมพลี ซอย 1,ตาก,ภาคตะวันตก
+2568-06-26,เช้า,Backup 4G,5502,บางปลาหมอ,ชัยนาท,ภาคกลาง
+2568-06-26,เช้า,Backup 4G,3588,ชุมชนวัดบ้านอ้อย,นครศรีธรรมราช,ภาคใต้
+2568-06-26,บ่าย,Main Link (FTTX),4926,ม.เรือนสุข 2 คลอง 9,สมุทรสาคร,ภาคกลาง
+2568-06-26,บ่าย,Main Link (FTTX),10460,ชุมชนหนองเป็ดน้ำ,นครปฐม,ภาคกลาง
+2568-06-26,บ่าย,Main Link (FTTX),18931,ชุมชนตะกุด(สระบุรี) (RC),ลพบุรี,ภาคกลาง
+2568-06-26,บ่าย,Main Link (FTTX),13077,อ่อนนุช 66 จุด 2 (BS),น่าน,ภาคเหนือ
+2568-06-26,บ่าย,Main Link (FTTX),14998,คำชะอี,เชียงใหม่,ภาคเหนือ
+2568-06-26,บ่าย,Backup 4G,11145,วังกรด,สมุทรปราการ,ภาคกลาง
+2568-06-26,บ่าย,Backup 4G,9770,FRตลาดเทพมงคล 2,นครสวรรค์,ภาคกลาง
+2568-06-26,บ่าย,Backup 4G,13367,ชุมชนบางลึก,พิษณุโลก,ภาคกลาง
+2568-06-26,บ่าย,Backup 4G,8134,นรราชอุทิศ,ประจวบคีรีขันธ์,ภาคตะวันตก
+2568-06-26,บ่าย,Backup 4G,2365,สามร้อยยอด,ชลบุรี,ภาคตะวันออก
+2568-06-26,บ่าย,Backup 4G,6991,นวรัฐ,พัทลุง,ภาคใต้
+2568-06-26,บ่าย,Backup 4G,5987,ปตท. LPG พระราม 2 กม. 50,กรุงเทพมหานคร,ภาคกลาง
+2568-06-26,บ่าย,Backup 4G,3189,อบต.สุเทพ,ตาก,ภาคตะวันตก
+2568-06-26,บ่าย,Backup 4G,954,คฑาธรณ์,พิษณุโลก,ภาคกลาง
+2568-06-26,บ่าย,Backup 4G,4173,หมู่บ้านเมืองยิ้ม,ลพบุรี,ภาคกลาง
+2568-06-27,เช้า,Main Link (FTTX),10460,บ้านป่าเป้า (จ.ลำพูน),ราชบุรี,ภาคตะวันตก
+2568-06-27,เช้า,Main Link (FTTX),1637,ริเวอร์ปาร์ค,พิษณุโลก,ภาคกลาง
+2568-06-27,เช้า,Main Link (FTTX),13730,ซอยธรรมศิริ (บางนา กม.25) (BS),กรุงเทพมหานคร,ภาคกลาง
+2568-06-27,เช้า,Main Link (FTTX),14496,แยกน้ำอ่าง,กรุงเทพมหานคร,ภาคกลาง
+2568-06-27,เช้า,Main Link (FTTX),16047,Hop Inn บางนา,กรุงเทพมหานคร,ภาคกลาง
+2568-06-27,เช้า,Backup 4G,6815,ปตท.ท่าไม้,สมุทรปราการ,ภาคกลาง
+2568-06-27,เช้า,Backup 4G,16002,PS พฤกษาวิลล์ 99 เพชรเกษม 93(อ้อมน้อย),บึงกาฬ,ภาคตะวันออกเฉียงเหนือ
+2568-06-27,เช้า,Backup 4G,16862,PTTOR ลับแล (ฝายหลวง),สระบุรี,ภาคกลาง
+2568-06-27,เช้า,Backup 4G,12003,ปตท.แม่ปะ,ราชบุรี,ภาคตะวันตก
+2568-06-27,เช้า,Backup 4G,11326,ธรรมามูล,เชียงใหม่,ภาคเหนือ
+2568-06-27,เช้า,Backup 4G,16531,ชุมชนปากนคร,สิงห์บุรี,ภาคกลาง
+2568-06-27,เช้า,Backup 4G,11155,เลียบคลองบางน้ำจืด,สมุทรสาคร,ภาคกลาง
+2568-06-27,เช้า,Backup 4G,17034,ศูนย์การแพทย์กาญจนาภิเษก โซน C,พระนครศรีอยุธยา,ภาคกลาง
+2568-06-27,เช้า,Backup 4G,11369,เมืองนารายณ์,น่าน,ภาคเหนือ
+2568-06-27,เช้า,Backup 4G,6594,อ.ปัว,เชียงใหม่,ภาคเหนือ
+2568-06-27,บ่าย,Main Link (FTTX),16047,Hop Inn บางนา,พระนครศรีอยุธยา,ภาคกลาง
+2568-06-27,บ่าย,Main Link (FTTX),2385,อารักษ์ 2,แพร่,ภาคเหนือ
+2568-06-27,บ่าย,Main Link (FTTX),10749,สวนปาล์ม,กรุงเทพมหานคร,ภาคกลาง
+2568-06-27,บ่าย,Main Link (FTTX),16887,ริมปิงริเวอร์ไซด์(นครสวรรค์),ชัยนาท,ภาคกลาง
+2568-06-27,บ่าย,Main Link (FTTX),15264,ทะเลแก้ว (NC),กรุงเทพมหานคร,ภาคกลาง
+2568-06-27,บ่าย,Backup 4G,2077,ปตท.ปราณบุรีการค้า,สุราษฎร์ธานี,ภาคใต้
+2568-06-27,บ่าย,Backup 4G,4365,ปตท.สุรศักดิ์ออยล์,ราชบุรี,ภาคตะวันตก
+2568-06-27,บ่าย,Backup 4G,16253,แยกเขาชัยสน,สุราษฎร์ธานี,ภาคใต้
+2568-06-27,บ่าย,Backup 4G,15994,ซอยโรงเหล็ก จุด 2,ราชบุรี,ภาคตะวันตก
+2568-06-27,บ่าย,Backup 4G,3400,ปตท.เกษมราษฎร์,สมุทรปราการ,ภาคกลาง
+2568-06-27,บ่าย,Backup 4G,16517,นาโบสถ์,นครสวรรค์,ภาคกลาง
+2568-06-27,บ่าย,Backup 4G,3030,ม.นเรศวร (ตลาดเมืองทอง ),สมุทรสาคร,ภาคกลาง
+2568-06-27,บ่าย,Backup 4G,8148,ปตท.พัฒนานิคม,สระบุรี,ภาคกลาง
+2568-06-27,บ่าย,Backup 4G,614,โพธาราม,ชลบุรี,ภาคตะวันออก
+2568-06-27,บ่าย,Backup 4G,6213,ถนนบรมไตรโลกนารถ,นครศรีธรรมราช,ภาคใต้
+2568-06-30,เช้า,Main Link (FTTX),13959,Belle Park (BW),กรุงเทพมหานคร,ภาคกลาง
+2568-06-30,เช้า,Main Link (FTTX),4018,ประดู่ 7,สุพรรณบุรี,ภาคกลาง
+2568-06-30,เช้า,Main Link (FTTX),16593,ปรีดีพนมยงค์ 41,พิษณุโลก,ภาคกลาง
+2568-06-30,เช้า,Main Link (FTTX),5552,บ้านคลองสวน,สุโขทัย,ภาคกลาง
+2568-06-30,เช้า,Main Link (FTTX),6706,เซกา,สมุทรปราการ,ภาคกลาง
+2568-06-30,เช้า,Backup 4G,4525,ปตท.หินกอง 2,ภูเก็ต,ภาคใต้
+2568-06-30,เช้า,Backup 4G,16002,PS พฤกษาวิลล์ 99 เพชรเกษม 93(อ้อมน้อย),สระแก้ว,ภาคตะวันออก
+2568-06-30,เช้า,Backup 4G,8239,ปตท.ดอนทราย (ปากท่อ),นครปฐม,ภาคกลาง
+2568-06-30,เช้า,Backup 4G,11708,บ้านทุ่งหมื่นน้อย (อ.สันทราย),เชียงใหม่,ภาคเหนือ
+2568-06-30,เช้า,Backup 4G,17124,พรหมมาสตร์,จันทบุรี,ภาคตะวันออก
+2568-06-30,เช้า,Backup 4G,851,คลองครุ,นครปฐม,ภาคกลาง
+2568-06-30,เช้า,Backup 4G,9716,บางซ้าย,อุดรธานี,ภาคตะวันออกเฉียงเหนือ
+2568-06-30,เช้า,Backup 4G,14209,PTTOR สุขุมปัว (NC),กรุงเทพมหานคร,ภาคกลาง
+2568-06-30,เช้า,Backup 4G,5147,ตลาดแม่กวง,เชียงใหม่,ภาคเหนือ
+2568-06-30,เช้า,Backup 4G,16695,พลัส คอนโด อยุธยาพาร์ค,ลำพูน,ภาคเหนือ
+2568-06-30,บ่าย,Main Link (FTTX),10644,ปตท.แยกเวียงทอง,นครปฐม,ภาคกลาง
+2568-06-30,บ่าย,Main Link (FTTX),10858,อิสรภาพ 31,ชุมพร,ภาคใต้
+2568-06-30,บ่าย,Main Link (FTTX),9992,เทศบาล 4 ชัยนาท,พระนครศรีอยุธยา,ภาคกลาง
+2568-06-30,บ่าย,Main Link (FTTX),11145,วังกรด,สมุทรสาคร,ภาคกลาง
+2568-06-30,บ่าย,Main Link (FTTX),14085,Silom Terrace,สุโขทัย,ภาคกลาง
+2568-06-30,บ่าย,Backup 4G,16922,ลีเล็ด (ท่าฉาง),พระนครศรีอยุธยา,ภาคกลาง
+2568-06-30,บ่าย,Backup 4G,13135,สุขเจริญ,พิษณุโลก,ภาคกลาง
+2568-06-30,บ่าย,Backup 4G,4835,จอมบึง 2,พิษณุโลก,ภาคกลาง
+2568-06-30,บ่าย,Backup 4G,16668,PTTOR ชัยบุรี,นครสวรรค์,ภาคกลาง
+2568-06-30,บ่าย,Backup 4G,6815,ปตท.ท่าไม้,กรุงเทพมหานคร,ภาคกลาง
+2568-06-30,บ่าย,Backup 4G,8239,ปตท.ดอนทราย (ปากท่อ),กรุงเทพมหานคร,ภาคกลาง
+2568-06-30,บ่าย,Backup 4G,17054,PTTOR เขาวัง (ราชบุรี),กรุงเทพมหานคร,ภาคกลาง
+2568-06-30,บ่าย,Backup 4G,773,ตลาดอัศวิน,เลย,ภาคตะวันออกเฉียงเหนือ
+2568-06-30,บ่าย,Backup 4G,5664,แยกนวมินทร์นครสวรรค์,กำแพงเพชร,ภาคกลาง
+2568-06-30,บ่าย,Backup 4G,17012,วัดยกกระบัตร,นครสวรรค์,ภาคกลาง
+2568-07-01,บ่าย,Main Link (FTTX),6300,ทับกวาง,นครราชสีมา,ภาคตะวันออกเฉียงเหนือ
+2568-07-01,บ่าย,Main Link (FTTX),16081,PTTOR ทุ่งขวาง-พนัส (ทล.349),สมุทรสาคร,ภาคกลาง
+2568-07-01,บ่าย,Main Link (FTTX),16740,บ้านไสม่วง,กำแพงเพชร,ภาคกลาง
+2568-07-01,บ่าย,Main Link (FTTX),11685,พีรพงษ์ (BW),อุดรธานี,ภาคตะวันออกเฉียงเหนือ
+2568-07-01,บ่าย,Main Link (FTTX),13098,ถนนข้าวปลูก (RC),สระบุรี,ภาคกลาง
+2568-07-01,บ่าย,Backup 4G,13367,ชุมชนบางลึก,ลพบุรี,ภาคกลาง
+2568-07-01,บ่าย,Backup 4G,6636,ท่าทอง,เชียงใหม่,ภาคเหนือ
+2568-07-01,บ่าย,Backup 4G,8484,ปตท.คีรีมาศ,สุพรรณบุรี,ภาคกลาง
+2568-07-01,บ่าย,Backup 4G,9188,สี่แยกบ่อนไก่ จุด 2,กรุงเทพมหานคร,ภาคกลาง
+2568-07-01,บ่าย,Backup 4G,15903,ซอยบางเทา 2,ขอนแก่น,ภาคตะวันออกเฉียงเหนือ
+2568-07-01,บ่าย,Backup 4G,16502,รพ.วัฒนานคร ( สระแก้ว ),กรุงเทพมหานคร,ภาคกลาง
+2568-07-01,บ่าย,Backup 4G,7085,ชุมชนดอนหวาย,กรุงเทพมหานคร,ภาคกลาง
+2568-07-01,บ่าย,Backup 4G,1157,ต้นพยอม,กรุงเทพมหานคร,ภาคกลาง
+2568-07-01,บ่าย,Backup 4G,16759,PTTOR หนองอ้อ จันทบุรี,เชียงใหม่,ภาคเหนือ
+2568-07-01,บ่าย,Backup 4G,1692,พุทธมณฑลสาย 7,สุพรรณบุรี,ภาคกลาง
+2568-07-02,เช้า,Main Link (FTTX),3921,ตลาดโพธิ์สุวรรณ,ตาก,ภาคตะวันตก
+2568-07-02,เช้า,Main Link (FTTX),10567,พลมานีย์ จุด 4,สิงห์บุรี,ภาคกลาง
+2568-07-02,เช้า,Main Link (FTTX),11351,บ้านสบเปิง (อ.แม่แตง),กาญจนบุรี,ภาคตะวันตก
+2568-07-02,เช้า,Main Link (FTTX),5057,คำชะอี,สิงห์บุรี,ภาคกลาง
+2568-07-02,เช้า,Main Link (FTTX),5282,บ้านเหมืองง่า,นนทบุรี,ภาคกลาง
+2568-07-02,เช้า,Backup 4G,15947,ปากทางโรงเรียนการบินกำแพงแสน,เชียงใหม่,ภาคเหนือ
+2568-07-02,เช้า,Backup 4G,12003,ปตท.แม่ปะ,นครปฐม,ภาคกลาง
+2568-07-02,เช้า,Backup 4G,15850,ร้านค้าสวัสดิการค่ายเขตอุดมศักดิ์ (SN),นนทบุรี,ภาคกลาง
+2568-07-02,เช้า,Backup 4G,7331,ปตท.พหลโยธินวังน้อย กม.78,กรุงเทพมหานคร,ภาคกลาง
+2568-07-02,เช้า,Backup 4G,1692,พุทธมณฑลสาย 7,ลพบุรี,ภาคกลาง
+2568-07-02,เช้า,Backup 4G,13044,ชุมชนนาดี (BW),ชลบุรี,ภาคตะวันออก
+2568-07-02,เช้า,Backup 4G,16634,รพ.สุโขทัย,นครราชสีมา,ภาคตะวันออกเฉียงเหนือ
+2568-07-02,เช้า,Backup 4G,1012,ชุมชนวัดพระญาติ,อุดรธานี,ภาคตะวันออกเฉียงเหนือ
+2568-07-02,เช้า,Backup 4G,9864,พิษณุโลกพลาซ่า,สมุทรสาคร,ภาคกลาง
+2568-07-02,เช้า,Backup 4G,10087,ปตท.เลี่ยงเมืองพิษณุโลก,เชียงใหม่,ภาคเหนือ
+2568-07-02,บ่าย,Main Link (FTTX),13886,ปตท.หนองบัว (NC),อ่างทอง,ภาคกลาง
+2568-07-02,บ่าย,Main Link (FTTX),12108,พุทธมณฑลสาย 2 ซอย 2 (BW),นครปฐม,ภาคกลาง
+2568-07-02,บ่าย,Main Link (FTTX),4312,ซอยนวลจิตร จุด 2,กาญจนบุรี,ภาคตะวันตก
+2568-07-02,บ่าย,Main Link (FTTX),4728,นภาจรัส,สงขลา,ภาคใต้
+2568-07-02,บ่าย,Main Link (FTTX),14222,PTTOR ด่านซ้าย (NE),นครปฐม,ภาคกลาง
+2568-07-02,บ่าย,Backup 4G,11801,ปตท.หนองปลิงกำแพงเพชร (RC),พิษณุโลก,ภาคกลาง
+2568-07-02,บ่าย,Backup 4G,3225,ธรรมจักร,ขอนแก่น,ภาคตะวันออกเฉียงเหนือ
+2568-07-02,บ่าย,Backup 4G,11833,Cargill Factory Market,กรุงเทพมหานคร,ภาคกลาง
+2568-07-02,บ่าย,Backup 4G,10299,DC มหาชัย,กรุงเทพมหานคร,ภาคกลาง
+2568-07-02,บ่าย,Backup 4G,10342,ราชดำเนิน (กำแพงเพชร),ชลบุรี,ภาคตะวันออก
+2568-07-02,บ่าย,Backup 4G,1230,สันติสุข,ลพบุรี,ภาคกลาง
+2568-07-02,บ่าย,Backup 4G,3144,ปตท.หินกอง,พิษณุโลก,ภาคกลาง
+2568-07-02,บ่าย,Backup 4G,15621,PTTOR ศูนย์สงครามพิเศษ (RC)(ปตท.100%),เชียงใหม่,ภาคเหนือ
+2568-07-02,บ่าย,Backup 4G,5094,FR.บ้านศรีดอนไชย 1,เชียงใหม่,ภาคเหนือ
+2568-07-02,บ่าย,Backup 4G,16252,ตลาดรุ่งโรจน์เจริญทรัพย์,เชียงใหม่,ภาคเหนือ
+2568-07-03,เช้า,Main Link (FTTX),992,ตลาดสำเหร่,นครปฐม,ภาคกลาง
+2568-07-03,เช้า,Main Link (FTTX),15414,ธาราคอนโดเทล 3 (NE),ลำปาง,ภาคเหนือ
+2568-07-03,เช้า,Main Link (FTTX),8572,รพ.กรุงเทพ(พลาซ่า),ประจวบคีรีขันธ์,ภาคตะวันตก
+2568-07-03,เช้า,Main Link (FTTX),13419,GAYSORN OFFICE TOWER (BW),นครศรีธรรมราช,ภาคใต้
+2568-07-03,เช้า,Main Link (FTTX),338,ตลาดพลู,เชียงใหม่,ภาคเหนือ
+2568-07-03,เช้า,Backup 4G,5840,ปตท.น้ำแพร่,นครราชสีมา,ภาคตะวันออกเฉียงเหนือ
+2568-07-03,เช้า,Backup 4G,17054,PTTOR เขาวัง (ราชบุรี),กรุงเทพมหานคร,ภาคกลาง
+2568-07-03,เช้า,Backup 4G,16016,ศรีประจันต์,หนองคาย,ภาคตะวันออกเฉียงเหนือ
+2568-07-03,เช้า,Backup 4G,5000,ตากพิทยาคม,เชียงใหม่,ภาคเหนือ
+2568-07-03,เช้า,Backup 4G,5583,ตลาดปลาชมภูพงศ์,กรุงเทพมหานคร,ภาคกลาง
+2568-07-03,เช้า,Backup 4G,7695,ไปรษณีย์กาญจน์,เพชรบุรี,ภาคตะวันตก
+2568-07-03,เช้า,Backup 4G,2159,บขส.สิงห์บุรี,สิงห์บุรี,ภาคกลาง
+2568-07-03,เช้า,Backup 4G,6927,ซอยประทานพร,นครนายก,ภาคกลาง
+2568-07-03,เช้า,Backup 4G,9307,บ้านหนองโค้ง,ชลบุรี,ภาคตะวันออก
+2568-07-03,เช้า,Backup 4G,4172,ปตท.นครชัยศรี,ราชบุรี,ภาคตะวันตก
+2568-07-03,บ่าย,Main Link (FTTX),6186,ม.พฤกษาวิลล์ 63-พระราม 5,เชียงราย,ภาคเหนือ
+2568-07-03,บ่าย,Main Link (FTTX),8145,อาคารสมเด็จพระเทพรัตน์(ร.พ.รามาฯ),สมุทรสงคราม,ภาคกลาง
+2568-07-03,บ่าย,Main Link (FTTX),13428,พัฒนานิคมสาย 4 (เขาสูง) (RC),ระยอง,ภาคตะวันออก
+2568-07-03,บ่าย,Main Link (FTTX),16045,PTTOR แยกบ้านบึง,พระนครศรีอยุธยา,ภาคกลาง
+2568-07-03,บ่าย,Main Link (FTTX),17058,ขนงพระใต้,กำแพงเพชร,ภาคกลาง
+2568-07-03,บ่าย,Backup 4G,8358,หลังอุดรทิพย์,เชียงใหม่,ภาคเหนือ
+2568-07-03,บ่าย,Backup 4G,11174,ท่าไม้,ปราจีนบุรี,ภาคตะวันออก
+2568-07-03,บ่าย,Backup 4G,3804,ปตทหนองผึ้ง,กรุงเทพมหานคร,ภาคกลาง
+2568-07-03,บ่าย,Backup 4G,16267,องครักษ์ อ่างทอง,กรุงเทพมหานคร,ภาคกลาง
+2568-07-03,บ่าย,Backup 4G,16765,ชุมชนบ้านเจริญสุข(กำแพงแสน),ชลบุรี,ภาคตะวันออก
+2568-07-03,บ่าย,Backup 4G,544,ริเวอร์แคว,สระบุรี,ภาคกลาง
+2568-07-03,บ่าย,Backup 4G,16774,PTTOR เขาเขียว (สิงหนคร),ลพบุรี,ภาคกลาง
+2568-07-03,บ่าย,Backup 4G,16650,เปโตร-ดงเกตุ,สิงห์บุรี,ภาคกลาง
+2568-07-03,บ่าย,Backup 4G,17034,ศูนย์การแพทย์กาญจนาภิเษก โซน C,สุพรรณบุรี,ภาคกลาง
+2568-07-03,บ่าย,Backup 4G,5072,พระองค์ดำ(พิษณุโลก),พิษณุโลก,ภาคกลาง
+2568-07-04,เช้า,Main Link (FTTX),4673,อดุลยาราม,แม่ฮ่องสอน,ภาคเหนือ
+2568-07-04,เช้า,Main Link (FTTX),11107,สุขุมวิท 66 (BS),สุราษฎร์ธานี,ภาคใต้
+2568-07-04,เช้า,Main Link (FTTX),11942,SV พระราม 3,สิงห์บุรี,ภาคกลาง
+2568-07-04,เช้า,Main Link (FTTX),11470,คลองตำหรุ 5 (ชลบุรี),สมุทรสาคร,ภาคกลาง
+2568-07-04,เช้า,Main Link (FTTX),3648,ซอยบาดาล,ราชบุรี,ภาคตะวันตก
+2568-07-04,เช้า,Backup 4G,5566,ปทุมทอง 2,กรุงเทพมหานคร,ภาคกลาง
+2568-07-04,เช้า,Backup 4G,8629,หน้าโรงพยาบาลมหาราช (เชียงใหม่),เชียงใหม่,ภาคเหนือ
+2568-07-04,เช้า,Backup 4G,11399,แยกสนามบิน2,นนทบุรี,ภาคกลาง
+2568-07-04,เช้า,Backup 4G,13952,FR.โรงพยาบาลราชเวช (จ.เชียงใหม่),กรุงเทพมหานคร,ภาคกลาง
+2568-07-04,เช้า,Backup 4G,16751,สามพราน ซอย 2,ระนอง,ภาคใต้
+2568-07-04,เช้า,Backup 4G,9528,แม่ทะ,ภูเก็ต,ภาคใต้
+2568-07-04,เช้า,Backup 4G,7016,ปตท.บางสะพาน,พังงา,ภาคใต้
+2568-07-04,เช้า,Backup 4G,2838,ชุมชนท่าศาลา,สงขลา,ภาคใต้
+2568-07-04,เช้า,Backup 4G,8083,หน้าโรงพยาบาลสารภี,สุราษฎร์ธานี,ภาคใต้
+2568-07-04,เช้า,Backup 4G,11954,ตลาดคลังมาร์เช่,ระยอง,ภาคตะวันออก
+2568-07-04,บ่าย,Main Link (FTTX),4674,เจริญกรุง 70,เพชรบูรณ์,ภาคกลาง
+2568-07-04,บ่าย,Main Link (FTTX),14000,ไนท์หนองคาย (NE),สงขลา,ภาคใต้
+2568-07-04,บ่าย,Main Link (FTTX),7349,ถนนสามล้าน,สุราษฎร์ธานี,ภาคใต้
+2568-07-04,บ่าย,Main Link (FTTX),11966,RSU Tower,เชียงราย,ภาคเหนือ
+2568-07-04,บ่าย,Main Link (FTTX),14133,ชายหาดหนองแจง(ชะอำใต้) (SN),เชียงใหม่,ภาคเหนือ
+2568-07-04,บ่าย,Backup 4G,8629,หน้าโรงพยาบาลมหาราช (เชียงใหม่),กรุงเทพมหานคร,ภาคกลาง
+2568-07-04,บ่าย,Backup 4G,11352,อัมพวัน (สิงห์บุรี),ปราจีนบุรี,ภาคตะวันออก
+2568-07-04,บ่าย,Backup 4G,3928,ปตท.นครนายก,ขอนแก่น,ภาคตะวันออกเฉียงเหนือ
+2568-07-04,บ่าย,Backup 4G,6888,ปตท.ฟ้าใส,ร้อยเอ็ด,ภาคตะวันออกเฉียงเหนือ
+2568-07-04,บ่าย,Backup 4G,6884,ปตท.ดอนตะโก,พิษณุโลก,ภาคกลาง
+2568-07-04,บ่าย,Backup 4G,7143,แม่สาย 4,นครราชสีมา,ภาคตะวันออกเฉียงเหนือ
+2568-07-04,บ่าย,Backup 4G,11859,บางน้อยใน,ตาก,ภาคตะวันตก
+2568-07-04,บ่าย,Backup 4G,6237,ห้วยโป่ง ซอย12,สุรินทร์,ภาคตะวันออกเฉียงเหนือ
+2568-07-04,บ่าย,Backup 4G,2156,ประตูชัย (อยุธยา),เพชรบุรี,ภาคตะวันตก
+2568-07-04,บ่าย,Backup 4G,8246,ปตท.ทรงธรรม,สมุทรสาคร,ภาคกลาง
+2568-07-07,เช้า,Main Link (FTTX),4211,ปตท.แม่ริม,สมุทรสาคร,ภาคกลาง
+2568-07-07,เช้า,Main Link (FTTX),1403,โรงพยาบาลเจ้าพระยาอภัยภูเบศร์,เชียงใหม่,ภาคเหนือ
+2568-07-07,เช้า,Main Link (FTTX),4157,บางปอซอย 4,กรุงเทพมหานคร,ภาคกลาง
+2568-07-07,เช้า,Main Link (FTTX),5372,พุทธมณฑลสาย 1 ซอย 4,ลพบุรี,ภาคกลาง
+2568-07-07,เช้า,Main Link (FTTX),6485,พรประภานิมิตร ซอย 22,กรุงเทพมหานคร,ภาคกลาง
+2568-07-07,เช้า,Backup 4G,15820,มวกเหล็ก-เขาใหญ่,ระยอง,ภาคตะวันออก
+2568-07-07,เช้า,Backup 4G,11039,แยกนารายณ์ฮิลล์,กรุงเทพมหานคร,ภาคกลาง
+2568-07-07,เช้า,Backup 4G,11765,บางงา (RC),นครปฐม,ภาคกลาง
+2568-07-07,เช้า,Backup 4G,5123,หน้า รพ.เดิมบางนางบวช,ภูเก็ต,ภาคใต้
+2568-07-07,เช้า,Backup 4G,1845,จ่านกร้อง,เพชรบุรี,ภาคตะวันตก
+2568-07-07,เช้า,Backup 4G,10443,ปตท.สุขุมแม่สะเรียง,นครนายก,ภาคกลาง
+2568-07-07,เช้า,Backup 4G,3599,ปตท.ธรรมบูชา,เพชรบุรี,ภาคตะวันตก
+2568-07-07,เช้า,Backup 4G,16144,รพ.อินทร์บุรี,ภูเก็ต,ภาคใต้
+2568-07-07,เช้า,Backup 4G,11694,ปตท.ถนนเศรษฐกิจ กม.16,เชียงราย,ภาคเหนือ
+2568-07-07,เช้า,Backup 4G,7683,ปตท.หลักเมืองมั่นคง,สมุทรสาคร,ภาคกลาง
+2568-07-07,บ่าย,Main Link (FTTX),94,จรัญสนิทวงศ์ 37,กรุงเทพมหานคร,ภาคกลาง
+2568-07-07,บ่าย,Main Link (FTTX),10492,ปตท.ไชยปราการ,สมุทรปราการ,ภาคกลาง
+2568-07-07,บ่าย,Main Link (FTTX),13141,LPN วิลล์ นครอินทร์-ริเวอร์วิว,เพชรบุรี,ภาคตะวันตก
+2568-07-07,บ่าย,Main Link (FTTX),2512,ราม 51/2,กรุงเทพมหานคร,ภาคกลาง
+2568-07-07,บ่าย,Main Link (FTTX),11504,บ้านในวก (RS),ชลบุรี,ภาคตะวันออก
+2568-07-07,บ่าย,Backup 4G,6857,ถนนประชาอุทิศภูเก็ต,สุพรรณบุรี,ภาคกลาง
+2568-07-07,บ่าย,Backup 4G,16597,รพ.ตะกั่วป่า,หนองคาย,ภาคตะวันออกเฉียงเหนือ
+2568-07-07,บ่าย,Backup 4G,16970,ตำบลคูหาใต้,กรุงเทพมหานคร,ภาคกลาง
+2568-07-07,บ่าย,Backup 4G,8562,ตลาดหน้าศูนย์สุราษฎร์,เชียงใหม่,ภาคเหนือ
+2568-07-07,บ่าย,Backup 4G,6349,หาดพลา,สมุทรสงคราม,ภาคกลาง
+2568-07-07,บ่าย,Backup 4G,16817,นาชุม,ลำปาง,ภาคเหนือ
+2568-07-07,บ่าย,Backup 4G,5231,กาญจนวนิช ซอย11,พิษณุโลก,ภาคกลาง
+2568-07-07,บ่าย,Backup 4G,9111,เอกทวีคูณ,เชียงใหม่,ภาคเหนือ
+2568-07-07,บ่าย,Backup 4G,16987,ถนนสนามบินเก่า,เชียงใหม่,ภาคเหนือ
+2568-07-07,บ่าย,Backup 4G,11656,บ้านเชิงดอย (ถ.สุเทพ),สมุทรสาคร,ภาคกลาง
+2568-07-08,เช้า,Main Link (FTTX),13652,โรงพยาบาลมหาราชนครเชียงใหม่ (S เชียงใหม่),สมุทรสงคราม,ภาคกลาง
+2568-07-08,เช้า,Main Link (FTTX),9214,ม.จรัญวิลล่า 1,เชียงใหม่,ภาคเหนือ
+2568-07-08,เช้า,Main Link (FTTX),14272,บ้านโป่งไผ่ (ศรีมหาโพธิ์) (RE),เชียงใหม่,ภาคเหนือ
+2568-07-08,เช้า,Main Link (FTTX),8341,ศิริสุข 1,ขอนแก่น,ภาคตะวันออกเฉียงเหนือ
+2568-07-08,เช้า,Main Link (FTTX),3028,ปตท.ปัทมานนท์,ร้อยเอ็ด,ภาคตะวันออกเฉียงเหนือ
+2568-07-08,เช้า,Backup 4G,15693,ชุมชนเต็งหนาม (RN),พิษณุโลก,ภาคกลาง
+2568-07-08,เช้า,Backup 4G,8523,ปตท.สระบุรี-ห้วยบง,นครราชสีมา,ภาคตะวันออกเฉียงเหนือ
+2568-07-08,เช้า,Backup 4G,16409,เมืองตาก,ตาก,ภาคตะวันตก
+2568-07-08,เช้า,Backup 4G,15711,PTTOR บ้านพลวงปราสาท,สุรินทร์,ภาคตะวันออกเฉียงเหนือ
+2568-07-08,เช้า,Backup 4G,6584,ตลาดวังหม้อแกง,เพชรบุรี,ภาคตะวันตก
+2568-07-08,เช้า,Backup 4G,7469,บางน้ำจืด,สมุทรสาคร,ภาคกลาง
+2568-07-08,เช้า,Backup 4G,16254,พระราม 2 กม. 34 (มหาชัย),สมุทรสาคร,ภาคกลาง
+2568-07-08,เช้า,Backup 4G,11066,แม่ริม4(บ้านท้องฝาย),เชียงใหม่,ภาคเหนือ
+2568-07-08,เช้า,Backup 4G,11102,พีเรสซิเด้นซ์,กรุงเทพมหานคร,ภาคกลาง
+2568-07-08,เช้า,Backup 4G,11319,ตลาดเอราวัณ (ลพบุรี),ลพบุรี,ภาคกลาง
+2568-07-08,บ่าย,Main Link (FTTX),6767,ตลาดกระทิงแดง,กรุงเทพมหานคร,ภาคกลาง
+2568-07-08,บ่าย,Main Link (FTTX),9365,ปตท.ตลาดตะพง (ระยอง),ระยอง,ภาคตะวันออก
+2568-07-08,บ่าย,Main Link (FTTX),4211,ปตท.แม่ริม,เชียงใหม่,ภาคเหนือ
+2568-07-08,บ่าย,Main Link (FTTX),10025,LPN อ่อนนุช 46,กรุงเทพมหานคร,ภาคกลาง
+2568-07-08,บ่าย,Main Link (FTTX),13040,สบาย ศาลายา (BW),นครปฐม,ภาคกลาง
+2568-07-08,บ่าย,Backup 4G,4822,ชุมชนเกาะสิเหร่,ภูเก็ต,ภาคใต้
+2568-07-08,บ่าย,Backup 4G,2820,Booth อาชีวะเพชรบุรี,เพชรบุรี,ภาคตะวันตก
+2568-07-08,บ่าย,Backup 4G,10486,ปตท.คลอง29 นครนายก,นครนายก,ภาคกลาง
+2568-07-08,บ่าย,Backup 4G,3467,โรงเรียนเบญจมะ ( เพชรบุรี ),เพชรบุรี,ภาคตะวันตก
+2568-07-08,บ่าย,Backup 4G,9641,หมู่บ้านฉลองสุข,ภูเก็ต,ภาคใต้
+2568-07-08,บ่าย,Backup 4G,9722,สันป่าก๊อ,เชียงราย,ภาคเหนือ
+2568-07-08,บ่าย,Backup 4G,7608,ปตท.สหกรณ์การเกษตรกระทุ่มแบน,สมุทรสาคร,ภาคกลาง
+2568-07-08,บ่าย,Backup 4G,8112,สาย 2 อเวนิว,กรุงเทพมหานคร,ภาคกลาง
+2568-07-08,บ่าย,Backup 4G,3677,หมู่บ้านเปรมฤทัยเลคพาร์ค,สมุทรปราการ,ภาคกลาง
+2568-07-08,บ่าย,Backup 4G,16718,หนองแจง,เพชรบุรี,ภาคตะวันตก
+2568-07-09,เช้า,Main Link (FTTX),3835,อ่อนนุช 46,กรุงเทพมหานคร,ภาคกลาง
+2568-07-09,เช้า,Main Link (FTTX),4685,ปตท. หนองไผ่แก้ว,ชลบุรี,ภาคตะวันออก
+2568-07-09,เช้า,Main Link (FTTX),6075,ปตท.บางปลาม้า(สุพรรณบุรี),สุพรรณบุรี,ภาคกลาง
+2568-07-09,เช้า,Main Link (FTTX),8923,ปตท.จอมเสด็จหนองคาย,หนองคาย,ภาคตะวันออกเฉียงเหนือ
+2568-07-09,เช้า,Main Link (FTTX),14483,จรัญฯ 75 แยก 3,กรุงเทพมหานคร,ภาคกลาง
+2568-07-09,เช้า,Backup 4G,5165,ลอยเคราะห์ 3,เชียงใหม่,ภาคเหนือ
+2568-07-09,เช้า,Backup 4G,10573,ปตท.แม่กลอง-อัมพวา,สมุทรสงคราม,ภาคกลาง
+2568-07-09,เช้า,Backup 4G,16408,ชุมชนปันง้าว,ลำปาง,ภาคเหนือ
+2568-07-09,เช้า,Backup 4G,4656,ปตท.สิงหวัฒน์,พิษณุโลก,ภาคกลาง
+2568-07-09,เช้า,Backup 4G,11084,ปตท.แยกสันกลาง,เชียงใหม่,ภาคเหนือ
+2568-07-09,เช้า,Backup 4G,13278,ปตท.สุขุมแม่ริม (RN),เชียงใหม่,ภาคเหนือ
+2568-07-09,เช้า,Backup 4G,5749,อ่างน้ำบ้านแพ้ว,สมุทรสาคร,ภาคกลาง
+2568-07-09,เช้า,Backup 4G,10119,ปตท.บ้านปรก(สมุทรสงคราม),สมุทรสงคราม,ภาคกลาง
+2568-07-09,เช้า,Backup 4G,14155,หมื่นด้ามพร้าคต 2,เชียงใหม่,ภาคเหนือ
+2568-07-09,เช้า,Backup 4G,1749,สันกำแพง,เชียงใหม่,ภาคเหนือ
+`;
+                try {
+                    const lines = csvData.trim().split('\n');
+                    const headers = lines[0].split(',').map(h => h.trim());
+                    const data = lines.slice(1).map(line => {
+                        const values = line.split(',');
+                        let obj = {};
+                        headers.forEach((header, index) => {
+                            obj[header] = values[index] ? values[index].trim() : '';
                         });
-                        if (type === 'Main Link') {
-                            events[date].main.push(...stores);
-                        } else {
-                            events[date].backup.push(...stores);
-                        }
+                        return obj;
                     });
-                    return Object.entries(events).map(([date, data]) => ({ date, ...data }));
-                };
-                const recentEvents = parseLineData(lineDataRaw);
-                const recentIssuesCount = recentEvents.reduce((acc, event) => acc + event.main.length + event.backup.length, 0);
+                    this.state.allEventsData = data;
+                } catch (error) {
+                    console.error("Failed to parse CSV data:", error);
+                    alert("ไม่สามารถแปลงข้อมูล CSV ได้");
+                    this.state.allEventsData = [];
+                }
+            },
+
+            // --- Data Processing ---
+            processData() {
+                const data = this.state.allEventsData;
+
+                const linkTypeCounts = data.reduce((acc, d) => {
+                    const type = d['ประเภท Link (Link Type)'];
+                    if (type) acc[type] = (acc[type] || 0) + 1;
+                    return acc;
+                }, {});
+
+                const storeIssueCounts = data.reduce((acc, d) => {
+                    const storeId = d['รหัสร้าน (Store ID)'];
+                    const storeName = d['ชื่อร้าน (Store Name)'];
+                    if (storeId) {
+                        if (!acc[storeId]) {
+                            acc[storeId] = { name: storeName, count: 0 };
+                        }
+                        acc[storeId].count++;
+                    }
+                    return acc;
+                }, {});
+                
+                const topStoreIssues = Object.entries(storeIssueCounts)
+                    .map(([id, data]) => ({ id, name: data.name, count: data.count }))
+                    .sort((a, b) => b.count - a.count)
+                    .slice(0, 10);
+
+                const regionCounts = data.reduce((acc, d) => {
+                    const region = d['ภาค (Region)'];
+                    if (region) acc[region] = (acc[region] || 0) + 1;
+                    return acc;
+                }, {});
+
+                const provinceCounts = data.reduce((acc, d) => {
+                    const province = d['จังหวัด (Province)'];
+                    if (province) acc[province] = (acc[province] || 0) + 1;
+                    return acc;
+                }, {});
+                const topProvinces = Object.entries(provinceCounts).map(([name, value]) => ({ name, value })).sort((a, b) => b.value - a.value).slice(0, 10);
+
+                const eventsByDate = data.reduce((acc, d) => {
+                    const date = d['วันที่ (Date)'];
+                    if (!date) return acc;
+                    if (!acc[date]) {
+                        acc[date] = { main: [], backup: [] };
+                    }
+                    const eventDetail = { id: d['รหัสร้าน (Store ID)'], name: d['ชื่อร้าน (Store Name)'] };
+                    if (d['ประเภท Link (Link Type)'].includes('Main')) {
+                        acc[date].main.push(eventDetail);
+                    } else {
+                        acc[date].backup.push(eventDetail);
+                    }
+                    return acc;
+                }, {});
+                
+                const recentEvents = Object.entries(eventsByDate).map(([date, data]) => ({ date, ...data })).sort((a,b) => new Date(b.date) - new Date(a.date));
 
                 return {
-                    attentionItems,
-                    totalDowntimeIncidents,
-                    mostProblematicRouter,
-                    mostProblematicRegion,
-                    wirelineStatusData,
-                    topDowntimes,
-                    regionChartData,
-                    provinceChartData,
-                    recentEvents,
-                    recentIssuesCount
+                    totalIssues: data.length,
+                    linkTypeCounts,
+                    topStoreIssues,
+                    regionCounts,
+                    topProvinces,
+                    recentEvents
                 };
-            };
-            const processedData = processData();
+            },
 
-            // --- STATE ---
-            let sortConfig = { key: 'ID', direction: 'ascending' };
-            let cstmFilter = 'All';
+            // --- Rendering Functions ---
+            render() {
+                const data = this.processData();
+                this.renderKPIs(data);
+                this.renderCharts(data);
+                this.renderTopIssuesList(data);
+                this.renderRecentEvents(data);
+                this.renderAttentionTable();
+                lucide.createIcons();
+            },
 
-            // --- RENDER FUNCTIONS ---
-            const renderKPIs = () => {
-                const kpiContainer = document.getElementById('kpi-container');
-                kpiContainer.innerHTML = `
-                    <div class="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-lg"><div class="flex items-center"><div class="p-3 rounded-xl mr-4 bg-red-500"><i data-lucide="alert-circle" class="h-6 w-6 text-white"></i></div><div><p class="text-sm text-gray-500 dark:text-gray-400 font-medium">รายการที่ต้องตรวจสอบ</p><p class="text-2xl font-bold text-gray-800 dark:text-white">${processedData.attentionItems.length}</p></div></div></div>
-                    <div class="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-lg"><div class="flex items-center"><div class="p-3 rounded-xl mr-4 bg-teal-500"><i data-lucide="activity" class="h-6 w-6 text-white"></i></div><div><p class="text-sm text-gray-500 dark:text-gray-400 font-medium">สาขามีปัญหาล่าสุด</p><p class="text-2xl font-bold text-gray-800 dark:text-white">${processedData.recentIssuesCount}</p></div></div></div>
-                    <div class="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-lg"><div class="flex items-center"><div class="p-3 rounded-xl mr-4 bg-orange-500"><i data-lucide="globe" class="h-6 w-6 text-white"></i></div><div><p class="text-sm text-gray-500 dark:text-gray-400 font-medium">ภาคที่เกิดปัญหาบ่อยสุด</p><p class="text-2xl font-bold text-gray-800 dark:text-white">${processedData.mostProblematicRegion}</p></div></div></div>
-                    <div class="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-lg"><div class="flex items-center"><div class="p-3 rounded-xl mr-4 bg-yellow-500"><i data-lucide="wrench" class="h-6 w-6 text-white"></i></div><div><p class="text-sm text-gray-500 dark:text-gray-400 font-medium">WDS Inactive</p><p class="text-2xl font-bold text-gray-800 dark:text-white">${downtimeRawData.filter(d=>d['Ciruit WDS Status'] === 'Inactive').length}</p></div></div></div>
-                `;
-            };
-
-            const renderCharts = () => {
-                const PIE_COLORS = { 'Monitor': '#34D399', 'ต้องดำเนินการ': '#F87171', 'New (รอตรวจสอบ)': '#FBBF24', 'ไม่มีสถานะ': '#9CA3AF' };
-                const BAR_COLORS = ['#60A5FA', '#A78BFA', '#F472B6', '#FBBF24', '#34D399', '#FB923C', '#4ADE80', '#2DD4BF', '#818CF8', '#E879F9'];
+            renderKPIs(data) {
+                const container = document.getElementById('kpi-container');
+                const regionCounts = data.regionCounts;
+                const mostProblematicRegion = Object.keys(regionCounts).length > 0 ? Object.keys(regionCounts).reduce((a, b) => regionCounts[a] > regionCounts[b] ? a : b, 'N/A') : 'N/A';
                 
-                // Wireline Status Pie Chart
-                new Chart(document.getElementById('wirelineStatusChart'), {
+                container.innerHTML = `
+                    <div class="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-lg" data-tooltip="จำนวนเหตุการณ์ Up/Down ทั้งหมดที่บันทึก">
+                        <div class="flex items-center"><div class="p-3 rounded-xl mr-4 bg-red-500"><i data-lucide="alert-circle" class="h-6 w-6 text-white"></i></div><div><p class="text-sm text-gray-500 dark:text-gray-400 font-medium">รวมทุกเหตุการณ์</p><p class="text-2xl font-bold text-gray-800 dark:text-white">${data.totalIssues}</p></div></div>
+                    </div>
+                    <div class="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-lg" data-tooltip="จำนวนปัญหาที่เกิดกับ Main Link">
+                        <div class="flex items-center"><div class="p-3 rounded-xl mr-4 bg-blue-500"><i data-lucide="arrow-up-circle" class="h-6 w-6 text-white"></i></div><div><p class="text-sm text-gray-500 dark:text-gray-400 font-medium">ปัญหา Main Link</p><p class="text-2xl font-bold text-gray-800 dark:text-white">${data.linkTypeCounts['Main Link (FTTX)'] || 0}</p></div></div>
+                    </div>
+                     <div class="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-lg" data-tooltip="จำนวนปัญหาที่เกิดกับ Backup 4G">
+                        <div class="flex items-center"><div class="p-3 rounded-xl mr-4 bg-yellow-500"><i data-lucide="arrow-down-circle" class="h-6 w-6 text-white"></i></div><div><p class="text-sm text-gray-500 dark:text-gray-400 font-medium">ปัญหา Backup 4G</p><p class="text-2xl font-bold text-gray-800 dark:text-white">${data.linkTypeCounts['Backup 4G'] || 0}</p></div></div>
+                    </div>
+                    <div class="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-lg" data-tooltip="ภาคที่พบปัญหาบ่อยที่สุด">
+                        <div class="flex items-center"><div class="p-3 rounded-xl mr-4 bg-orange-500"><i data-lucide="globe" class="h-6 w-6 text-white"></i></div><div><p class="text-sm text-gray-500 dark:text-gray-400 font-medium">ภาคที่เกิดปัญหาบ่อยสุด</p><p class="text-2xl font-bold text-gray-800 dark:text-white">${mostProblematicRegion}</p></div></div>
+                    </div>
+                `;
+            },
+
+            renderCharts(data) {
+                const BAR_COLORS = ['#60A5FA', '#A78BFA', '#F472B6', '#FBBF24', '#34D399', '#FB923C', '#4ADE80', '#2DD4BF', '#818CF8', '#E879F9'];
+                const PIE_COLORS = { 'Main Link (FTTX)': '#3B82F6', 'Backup 4G': '#F59E0B' };
+                const isDarkMode = document.documentElement.classList.contains('dark');
+                const textColor = isDarkMode ? 'white' : 'black';
+                Chart.defaults.color = textColor;
+
+                Object.values(this.state.charts).forEach(chart => chart.destroy());
+
+                this.state.charts.linkTypeChart = new Chart(document.getElementById('linkTypeChart'), {
                     type: 'pie',
                     data: {
-                        labels: processedData.wirelineStatusData.map(d => d.name),
-                        datasets: [{
-                            data: processedData.wirelineStatusData.map(d => d.value),
-                            backgroundColor: processedData.wirelineStatusData.map(d => PIE_COLORS[d.name] || '#9CA3AF'),
-                        }]
+                        labels: Object.keys(data.linkTypeCounts),
+                        datasets: [{ data: Object.values(data.linkTypeCounts), backgroundColor: Object.keys(data.linkTypeCounts).map(k => PIE_COLORS[k]), borderColor: isDarkMode ? '#111827' : '#ffffff', borderWidth: 2 }]
                     },
-                    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } } }
-                });
-
-                // Region Bar Chart
-                 new Chart(document.getElementById('regionChart'), {
-                    type: 'bar',
-                    data: {
-                        labels: processedData.regionChartData.map(d => d.name),
-                        datasets: [{
-                            label: 'จำนวนครั้ง',
-                            data: processedData.regionChartData.map(d => d.value),
-                            backgroundColor: BAR_COLORS,
-                        }]
-                    },
-                    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
-                });
-
-                // Province Bar Chart
-                new Chart(document.getElementById('provinceChart'), {
-                    type: 'bar',
-                    data: {
-                        labels: processedData.provinceChartData.map(d => d.name),
-                        datasets: [{
-                            label: 'จำนวนครั้ง',
-                            data: processedData.provinceChartData.map(d => d.value),
-                            backgroundColor: BAR_COLORS.slice().reverse(),
-                        }]
-                    },
-                    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { ticks: { font: { size: 10 } } } } }
-                });
-            };
-            
-            const renderTopDowntimeList = () => {
-                const container = document.getElementById('topDowntimeList');
-                const maxDowntime = Math.max(...processedData.topDowntimes.map(d => d.days));
-                container.innerHTML = processedData.topDowntimes.map(item => {
-                    const statusClass = item['Ciruit WDS Status'] === 'Active' ? 'text-green-600 dark:text-green-400' : item['Ciruit WDS Status'] === 'Inactive' ? 'text-red-600 dark:text-red-400' : 'text-gray-500';
-                    const statusIcon = item['Ciruit WDS Status'] === 'Active' ? '<i data-lucide="power" class="w-3 h-3 mr-1"></i>' : item['Ciruit WDS Status'] === 'Inactive' ? '<i data-lucide="power-off" class="w-3 h-3 mr-1"></i>' : '';
-
-                    return `
-                        <div class="bg-gray-100 dark:bg-gray-700/50 p-3 rounded-lg">
-                            <div class="flex justify-between items-center mb-2 gap-2">
-                                <p class="font-bold text-sm text-gray-800 dark:text-white truncate pr-2">${item.name}</p>
-                                <span class="flex items-center text-xs font-medium ${statusClass}">${statusIcon}${item['Ciruit WDS Status'] || 'N/A'}</span>
-                                <p class="text-sm font-semibold text-blue-500 dark:text-blue-400 whitespace-nowrap">${item.days} วัน</p>
-                            </div>
-                            <div class="w-full bg-gray-200 dark:bg-gray-600 rounded-full h-2.5 mb-2">
-                                <div class="bg-blue-500 h-2.5 rounded-full" style="width: ${(item.days / maxDowntime) * 100}%"></div>
-                            </div>
-                            <div class="flex justify-between text-xs text-gray-500 dark:text-gray-400">
-                                <div class="flex items-center gap-1"><i data-lucide="wifi" class="w-3 h-3"></i><span>Main: ${item['Ciruit Main'] || 'N/A'}</span></div>
-                                <div class="flex items-center gap-1"><i data-lucide="wifi-off" class="w-3 h-3"></i><span>WDS: ${item['Ciruit WDS'] || 'N/A'}</span></div>
-                            </div>
-                        </div>
-                    `;
-                }).join('');
-            };
-
-            const renderAttentionTable = () => {
-                const tableBody = document.getElementById('attention-table-body');
-                let filteredItems = processedData.attentionItems;
-                if (cstmFilter !== 'All') {
-                    filteredItems = filteredItems.filter(item => item.CSTM === cstmFilter);
-                }
-
-                const sortedItems = [...filteredItems].sort((a, b) => {
-                    const valA = a[sortConfig.key] || '';
-                    const valB = b[sortConfig.key] || '';
-                    if (valA < valB) return sortConfig.direction === 'ascending' ? -1 : 1;
-                    if (valA > valB) return sortConfig.direction === 'ascending' ? 1 : -1;
-                    return 0;
+                    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { color: textColor } } } }
                 });
                 
-                tableBody.innerHTML = sortedItems.map(item => {
-                    const status = item.Status || 'ไม่มีสถานะ';
-                    const statusClass = status.includes('New') ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300' :
-                                      status.includes('Monitor') ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300' :
-                                      'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300';
-                    return `
-                        <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600">
-                            <td class="px-6 py-4">${item.ID}</td>
-                            <td class="px-6 py-4 font-medium text-gray-900 dark:text-white whitespace-nowrap">${item.สาขา}</td>
-                            <td class="px-6 py-4"><span class="px-2 py-1 rounded-full text-xs font-medium ${statusClass}">${status}</span></td>
-                            <td class="px-6 py-4">${item.CSTM || 'N/A'}</td>
-                        </tr>
-                    `;
-                }).join('');
-            };
+                this.state.charts.regionChart = new Chart(document.getElementById('regionChart'), {
+                    type: 'bar',
+                    data: {
+                        labels: Object.keys(data.regionCounts),
+                        datasets: [{ label: 'จำนวนครั้ง', data: Object.values(data.regionCounts), backgroundColor: BAR_COLORS }]
+                    },
+                    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { ticks: { color: textColor } }, x: { ticks: { color: textColor } } } }
+                });
+
+                this.state.charts.provinceChart = new Chart(document.getElementById('provinceChart'), {
+                    type: 'bar',
+                    data: {
+                        labels: data.topProvinces.map(p => p.name),
+                        datasets: [{ label: 'จำนวนครั้ง', data: data.topProvinces.map(p => p.value), backgroundColor: BAR_COLORS.slice().reverse() }]
+                    },
+                    options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { ticks: { color: textColor, font: { size: 10 } } }, x: { ticks: { color: textColor } } } }
+                });
+            },
+
+            renderTopIssuesList(data) {
+                const container = document.getElementById('topIssuesList');
+                if (data.topStoreIssues.length === 0) {
+                    container.innerHTML = '<p class="text-center text-gray-500 dark:text-gray-400">ไม่มีข้อมูล</p>';
+                    return;
+                }
+                const maxCount = Math.max(...data.topStoreIssues.map(d => d.count));
+                container.innerHTML = data.topStoreIssues.map(item => `
+                    <div class="bg-gray-100 dark:bg-gray-700/50 p-3 rounded-lg">
+                        <div class="flex justify-between items-center mb-2 gap-2 flex-wrap">
+                            <p class="font-bold text-sm text-gray-800 dark:text-white truncate pr-2 flex-1 min-w-0">${item.name} (${item.id})</p>
+                            <p class="text-sm font-semibold text-red-500 dark:text-red-400 whitespace-nowrap flex-shrink-0">${item.count} ครั้ง</p>
+                        </div>
+                        <div class="w-full bg-gray-200 dark:bg-gray-600 rounded-full h-2.5" aria-label="แถบแสดงจำนวนปัญหา">
+                            <div class="bg-red-500 h-2.5 rounded-full" style="width: ${maxCount > 0 ? (item.count / maxCount) * 100 : 0}%"></div>
+                        </div>
+                    </div>
+                `).join('');
+            },
             
-            const renderRecentEvents = () => {
+            renderAttentionTable() {
+                const tableBody = document.getElementById('attention-table-body');
+                const { currentPage, itemsPerPage } = this.state.pagination;
+                const data = this.state.allEventsData;
+
+                if (data.length === 0) {
+                    tableBody.innerHTML = `<tr><td colspan="7" class="text-center py-8 text-gray-500 dark:text-gray-400">ไม่พบข้อมูล</td></tr>`;
+                    return;
+                }
+
+                const startIndex = (currentPage - 1) * itemsPerPage;
+                const endIndex = startIndex + itemsPerPage;
+                const paginatedData = data.slice(startIndex, endIndex);
+
+                tableBody.innerHTML = paginatedData.map(item => `
+                    <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600">
+                        <td class="px-6 py-4">${item['วันที่ (Date)'] || 'N/A'}</td>
+                        <td class="px-6 py-4">${item['รอบ (Period)'] || 'N/A'}</td>
+                        <td class="px-6 py-4">${item['ประเภท Link (Link Type)'] || 'N/A'}</td>
+                        <td class="px-6 py-4">${item['รหัสร้าน (Store ID)'] || 'N/A'}</td>
+                        <td class="px-6 py-4 font-medium text-gray-900 dark:text-white whitespace-nowrap">${item['ชื่อร้าน (Store Name)'] || 'N/A'}</td>
+                        <td class="px-6 py-4">${item['จังหวัด (Province)'] || 'N/A'}</td>
+                        <td class="px-6 py-4">${item['ภาค (Region)'] || 'N/A'}</td>
+                    </tr>
+                `).join('');
+                
+                this.renderPaginationControls();
+            },
+
+            renderPaginationControls() {
+                const { currentPage, itemsPerPage } = this.state.pagination;
+                const totalItems = this.state.allEventsData.length;
+                const totalPages = Math.ceil(totalItems / itemsPerPage);
+                const container = document.getElementById('pagination-container');
+
+                if (totalPages <= 1) {
+                    container.innerHTML = '';
+                    return;
+                }
+
+                let paginationHTML = '<nav aria-label="Pagination"><ul class="flex items-center -space-x-px h-8 text-sm">';
+
+                // Previous button
+                paginationHTML += `<li><button id="prev-page" class="flex items-center justify-center px-3 h-8 ms-0 leading-tight text-gray-500 bg-white border border-e-0 border-gray-300 rounded-s-lg hover:bg-gray-100 hover:text-gray-700 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white" ${currentPage === 1 ? 'disabled' : ''}>ก่อนหน้า</button></li>`;
+
+                // Page number buttons
+                for (let i = 1; i <= totalPages; i++) {
+                    const activeClasses = 'z-10 flex items-center justify-center px-3 h-8 leading-tight text-blue-600 border border-blue-300 bg-blue-50 hover:bg-blue-100 hover:text-blue-700 dark:border-gray-700 dark:bg-gray-700 dark:text-white';
+                    const defaultClasses = 'flex items-center justify-center px-3 h-8 leading-tight text-gray-500 bg-white border border-gray-300 hover:bg-gray-100 hover:text-gray-700 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white';
+                    paginationHTML += `<li><button data-page="${i}" class="${currentPage === i ? activeClasses : defaultClasses}">${i}</button></li>`;
+                }
+
+                // Next button
+                paginationHTML += `<li><button id="next-page" class="flex items-center justify-center px-3 h-8 leading-tight text-gray-500 bg-white border border-gray-300 rounded-e-lg hover:bg-gray-100 hover:text-gray-700 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white" ${currentPage === totalPages ? 'disabled' : ''}>ถัดไป</button></li>`;
+
+                paginationHTML += '</ul></nav>';
+                container.innerHTML = paginationHTML;
+            },
+
+            renderRecentEvents(data) {
                 const container = document.getElementById('recent-events-container');
-                container.innerHTML = processedData.recentEvents.map((event, idx) => `
+                 if (data.recentEvents.length === 0) {
+                    container.innerHTML = '<p class="text-center text-gray-500 dark:text-gray-400">ไม่มีข้อมูลเหตุการณ์ล่าสุด</p>';
+                    return;
+                }
+                container.innerHTML = data.recentEvents.map((event, idx) => `
                     <div class="border-b border-gray-200 dark:border-gray-700">
-                        <details class="group">
+                        <details class="group" ${idx < 3 ? 'open' : ''}>
                             <summary class="flex justify-between items-center w-full py-3 px-1 text-left font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer list-none">
                                 <span>วันที่: ${event.date}</span>
                                 <i data-lucide="chevron-down" class="w-5 h-5 transition-transform group-open:rotate-180"></i>
@@ -480,65 +808,86 @@
                                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <div>
                                         <h4 class="font-semibold mb-2 text-red-500">Main Link Issues (${event.main.length})</h4>
-                                        <ul class="list-disc list-inside text-sm space-y-1">${event.main.map(store => `<li key=${store.id}>${store.id} - ${store.name}</li>`).join('')}</ul>
+                                        <ul class="list-disc list-inside text-sm space-y-1">${event.main.length > 0 ? event.main.map(store => `<li key=${store.id}>${store.id} - ${store.name}</li>`).join('') : '<li>ไม่มี</li>'}</ul>
                                     </div>
                                     <div>
                                         <h4 class="font-semibold mb-2 text-blue-500">Backup 4G Issues (${event.backup.length})</h4>
-                                        <ul class="list-disc list-inside text-sm space-y-1">${event.backup.map(store => `<li key=${store.id}>${store.id} - ${store.name}</li>`).join('')}</ul>
+                                        <ul class="list-disc list-inside text-sm space-y-1">${event.backup.length > 0 ? event.backup.map(store => `<li key=${store.id}>${store.id} - ${store.name}</li>`).join('') : '<li>ไม่มี</li>'}</ul>
                                     </div>
                                 </div>
                             </div>
                         </details>
                     </div>
                 `).join('');
-            };
-            
-            const setupEventListeners = () => {
-                // Filter
-                const cstmOptions = ['All', ...new Set(wirelineRawData.map(item => item.CSTM).filter(Boolean))];
-                const filterSelect = document.getElementById('cstm-filter');
-                filterSelect.innerHTML = cstmOptions.map(cstm => `<option value="${cstm}">${cstm === 'All' ? 'แสดงทั้งหมด' : cstm}</option>`).join('');
-                filterSelect.addEventListener('change', (e) => {
-                    cstmFilter = e.target.value;
-                    renderAttentionTable();
-                });
+            },
 
-                // Sorting
-                document.querySelectorAll('th[data-sort]').forEach(th => {
-                    th.addEventListener('click', () => {
-                        const key = th.dataset.sort;
-                        const currentDirection = sortConfig.key === key ? sortConfig.direction : 'descending';
-                        sortConfig = {
-                            key: key,
-                            direction: currentDirection === 'ascending' ? 'descending' : 'ascending'
-                        };
-                        
-                        // Update icons
-                        document.querySelectorAll('th[data-sort] i').forEach(i => {
-                            i.classList.add('opacity-20');
-                            i.setAttribute('data-lucide', 'chevron-down');
+            setupEventListeners() {
+                document.getElementById('download-all-btn').addEventListener('click', () => {
+                    const data = this.state.allEventsData;
+                    if (data.length > 0) {
+                        const headers = Object.keys(data[0]);
+                        const csvRows = [headers.join(',')];
+                        data.forEach(row => {
+                            const values = headers.map(header => {
+                                let cell = row[header] === null || row[header] === undefined ? '' : String(row[header]);
+                                if (/[",\n]/.test(cell)) {
+                                    cell = `"${cell.replace(/"/g, '""')}"`;
+                                }
+                                return cell;
+                            });
+                            csvRows.push(values.join(','));
                         });
-                        const icon = th.querySelector('i');
-                        icon.classList.remove('opacity-20');
-                        icon.setAttribute('data-lucide', sortConfig.direction === 'ascending' ? 'chevron-up' : 'chevron-down');
-                        
-                        renderAttentionTable();
-                        lucide.createIcons();
-                    });
+                        const csvString = '\uFEFF' + csvRows.join('\n');
+                        const blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' });
+                        const link = document.createElement('a');
+                        const url = URL.createObjectURL(blob);
+                        link.setAttribute('href', url);
+                        link.setAttribute('download', 'all_events_data.csv');
+                        link.style.visibility = 'hidden';
+                        document.body.appendChild(link);
+                        link.click();
+                        document.body.removeChild(link);
+                    } else {
+                        alert("ไม่มีข้อมูลสำหรับดาวน์โหลด");
+                    }
                 });
-            };
+                document.getElementById('refresh-btn').addEventListener('click', () => this.init());
+                
+                document.getElementById('pagination-container').addEventListener('click', (e) => {
+                    const button = e.target.closest('button');
+                    if (!button) return;
 
-            // --- INITIAL RENDER ---
-            document.getElementById('last-updated').innerHTML = `อัปเดตล่าสุด: <br/> ${new Date().toLocaleString('th-TH')}`;
-            renderKPIs();
-            renderCharts();
-            renderTopDowntimeList();
-            renderRecentEvents();
-            renderAttentionTable();
-            setupEventListeners();
-            lucide.createIcons();
-        });
+                    const page = button.dataset.page;
+                    if (page) {
+                        this.state.pagination.currentPage = parseInt(page, 10);
+                    } else if (button.id === 'prev-page') {
+                        this.state.pagination.currentPage--;
+                    } else if (button.id === 'next-page') {
+                        this.state.pagination.currentPage++;
+                    }
+                    this.renderAttentionTable();
+                });
+            },
+
+            async init() {
+                const loadingOverlay = document.getElementById('loading-overlay');
+                const dashboardContainer = document.getElementById('dashboard-container');
+                
+                loadingOverlay.style.display = 'flex';
+                dashboardContainer.style.opacity = 0;
+
+                await this.fetchData();
+                this.render();
+                this.setupEventListeners();
+                
+                document.getElementById('last-updated').textContent = `อัปเดตล่าสุด: ${new Date().toLocaleString('th-TH', { dateStyle: 'medium', timeStyle: 'short' })}`;
+
+                loadingOverlay.style.display = 'none';
+                dashboardContainer.style.opacity = 1;
+            }
+        };
+
+        app.init();
     </script>
-
 </body>
 </html>
