@@ -13,13 +13,18 @@
             font-family: 'Sarabun', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
             background-color: #f8fafc;
         }
+        .dark body {
+            background-color: #0f172a;
+        }
         .chart-card {
             height: 400px;
         }
         /* Custom scrollbar */
         ::-webkit-scrollbar { width: 8px; height: 8px; }
         ::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 10px; }
+        .dark ::-webkit-scrollbar-track { background: #1e293b; }
         ::-webkit-scrollbar-thumb { background: #94a3b8; border-radius: 10px; }
+        .dark ::-webkit-scrollbar-thumb { background: #475569; }
         ::-webkit-scrollbar-thumb:hover { background: #64748b; }
 
         /* Loading Spinner */
@@ -35,6 +40,9 @@
             align-items: center;
             z-index: 9999;
             transition: opacity 0.3s;
+        }
+        .dark #loading-overlay {
+            background-color: rgba(15, 23, 42, 0.8);
         }
         .spinner {
             width: 56px;
@@ -249,7 +257,7 @@
 24/06/2568,บ่าย,Backup 4G,3126,สามแยกแหลมดิน 1,นครราชสีมา,ภาคตะวันออกเฉียงเหนือ
 24/06/2568,บ่าย,Backup 4G,3588,ชุมชนวัดบ้านอ้อย,สมุทรปราการ,ภาคกลาง
 24/06/2568,บ่าย,Backup 4G,9628,อำเภอบางแพ,จันทบุรี,ภาคตะวันออก
-25/06/2568,เช้า,Main Link (FTTX),10460,บ้านป่าเป้า,ลำพูน,ภาคเหนือ
+25/06/2568,เช้า,Main Link (FTTX),10460,บ้านป่าเป้า (จ.ลำพูน),กรุงเทพมหานคร,ภาคกลาง
 25/06/2568,เช้า,Main Link (FTTX),18570,โป่งตาลอง(ปากช่อง),กาญจนบุรี,ภาคตะวันตก
 25/06/2568,เช้า,Main Link (FTTX),11534,กลางซอยศรีบุญเรือง,ลพบุรี,ภาคกลาง
 25/06/2568,เช้า,Main Link (FTTX),14985,PTTOR ทุ่งเบญจา (RE),สระบุรี,ภาคกลาง
@@ -264,7 +272,7 @@
 25/06/2568,เช้า,Backup 4G,7566,โรงพยาบาลเอกชัย,นครปฐม,ภาคกลาง
 25/06/2568,เช้า,Backup 4G,300,มหาชัย 2,นครศรีธรรมราช,ภาคใต้
 25/06/2568,เช้า,Backup 4G,10587,ตลาดป่ายาง,นครปฐม,ภาคกลาง
-25/06/2568,บ่าย,Main Link (FTTX),10460,บ้านป่าเป้า,ลำพูน,ภาคเหนือ
+25/06/2568,บ่าย,Main Link (FTTX),10460,บ้านป่าเป้า (จ.ลำพูน),ปทุมธานี,ภาคกลาง
 25/06/2568,บ่าย,Main Link (FTTX),13142,บางแวก-สาย2(ซอยกล้วยไม้)BW,ลพบุรี,ภาคกลาง
 25/06/2568,บ่าย,Main Link (FTTX),2426,นานาเหนือ (สุขุมวิท 3),สมุทรปราการ,ภาคกลาง
 25/06/2568,บ่าย,Main Link (FTTX),15405,ชุมชนเฟื่องฟ้า(ทับกวาง) (NC),ชลบุรี,ภาคตะวันออก
@@ -280,7 +288,7 @@
 25/06/2568,บ่าย,Backup 4G,11045,พรุฉิมพลี ซอย 1,ชุมพร,ภาคใต้
 25/06/2568,บ่าย,Backup 4G,10975,ชุมชนธรรมศาลา,พระนครศรีอยุธยา,ภาคกลาง
 26/06/2568,เช้า,Main Link (FTTX),1637,ริเวอร์ปาร์ค,ประจวบคีรีขันธ์,ภาคตะวันตก
-26/06/2568,เช้า,Main Link (FTTX),10460,บ้านป่าเป้า,ลำพูน,ภาคเหนือ
+26/06/2568,เช้า,Main Link (FTTX),10460,บ้านป่าเป้า (จ.ลำพูน),เชียงใหม่,ภาคเหนือ
 26/06/2568,เช้า,Main Link (FTTX),11590,ท่ามะนาว (RN),สมุทรสาคร,ภาคกลาง
 26/06/2568,เช้า,Main Link (FTTX),10630,ซอย อบต.เทพารักษ์,เชียงใหม่,ภาคเหนือ
 26/06/2568,เช้า,Main Link (FTTX),9075,ตลาดหนองปรือ,ราชบุรี,ภาคตะวันตก
@@ -309,7 +317,7 @@
 26/06/2568,บ่าย,Backup 4G,3189,อบต.สุเทพ,ตาก,ภาคตะวันตก
 26/06/2568,บ่าย,Backup 4G,954,คฑาธรณ์,พิษณุโลก,ภาคกลาง
 26/06/2568,บ่าย,Backup 4G,4173,หมู่บ้านเมืองยิ้ม,ลพบุรี,ภาคกลาง
-27/06/2568,เช้า,Main Link (FTTX),10460,บ้านป่าเป้า,ลำพูน,ภาคเหนือ
+27/06/2568,เช้า,Main Link (FTTX),10460,บ้านป่าเป้า (จ.ลำพูน),ราชบุรี,ภาคตะวันตก
 27/06/2568,เช้า,Main Link (FTTX),1637,ริเวอร์ปาร์ค,พิษณุโลก,ภาคกลาง
 27/06/2568,เช้า,Main Link (FTTX),13730,ซอยธรรมศิริ (บางนา กม.25) (BS),กรุงเทพมหานคร,ภาคกลาง
 27/06/2568,เช้า,Main Link (FTTX),14496,แยกน้ำอ่าง,กรุงเทพมหานคร,ภาคกลาง
@@ -549,6 +557,21 @@
 09/07/2568,เช้า,Backup 4G,10119,ปตท.บ้านปรก(สมุทรสงคราม),สมุทรสงคราม,ภาคกลาง
 09/07/2568,เช้า,Backup 4G,14155,หมื่นด้ามพร้าคต 2,เชียงใหม่,ภาคเหนือ
 09/07/2568,เช้า,Backup 4G,1749,สันกำแพง,เชียงใหม่,ภาคเหนือ
+09/07/2025,บ่าย,Main Link,5840,ปตท.น้ำแพร่,ภาคเหนือ,แพร่
+09/07/2025,บ่าย,Main Link,8962,FR.ถนนโพธาราม (เชียงใหม่),ภาคเหนือ,เชียงใหม่
+09/07/2025,บ่าย,Main Link,13141,LPN วิลล์ นครอินทร์-ริเวอร์วิว,ภาคเหนือ,เชียงใหม่
+09/07/2025,บ่าย,Main Link,22619,ตลาดนัดหน้าอนามัย บ้านพลับพลา(จันทบุรี),ภาคเหนือ,เชียงใหม่
+09/07/2025,บ่าย,Main Link,6790,บุญนครคอนโด,ภาคเหนือ,แพร่
+09/07/2025,บ่าย,Backup 4G,15518,บ้านสวนรื่นรมย์(ห้วยยอด),ภาคตะวันออกเฉียงเหนือ,หนองคาย
+09/07/2025,บ่าย,Backup 4G,16963,บ้านใหม่(อ.สันกำแพง),ภาคกลาง,นนทบุรี
+09/07/2025,บ่าย,Backup 4G,11827,บ้านใหม่ (RC),ภาคกลาง,สมุทรปราการ
+09/07/2025,บ่าย,Backup 4G,7741,อรุณรังษี(หนองคาย),ภาคกลาง,สุพรรณบุรี
+09/07/2025,บ่าย,Backup 4G,6025,ศักดิเดชซอย 5,ภาคกลาง,สมุทรสาคร
+09/07/2025,บ่าย,Backup 4G,16298,ชุมชนท่าล้อ,ภาคกลาง,พระนครศรีอยุธยา
+09/07/2025,บ่าย,Backup 4G,15678,PTTOR หมู่บ้านอนุรักษ์ควายไทย (RC),ภาคกลาง,กาญจนบุรี
+09/07/2025,บ่าย,Backup 4G,10956,ตลาดดอนไก่ดี,ภาคตะวันออก,จันทบุรี
+09/07/2025,บ่าย,Backup 4G,13277,ปตท.นาจักร 2 (RN),ภาคใต้,ตรัง
+09/07/2025,บ่าย,Backup 4G,11084,ปตท.แยกสันกลาง,ภาคใต้,ภูเก็ต
 `;
                 try {
                     const lines = csvData.trim().split('\n');
@@ -677,18 +700,21 @@
                 const BAR_COLORS = ['#60A5FA', '#A78BFA', '#F472B6', '#FBBF24', '#34D399', '#FB923C', '#4ADE80', '#2DD4BF', '#818CF8', '#E879F9'];
                 const PIE_COLORS = { 'Main Link (FTTX)': '#3B82F6', 'Backup 4G': '#F59E0B' };
                 
+                const textColor = '#1e293b';
+                const gridColor = 'rgba(0, 0, 0, 0.1)';
+                
                 Object.values(this.state.charts).forEach(chart => chart.destroy());
 
                 const sharedChartOptions = {
                     responsive: true,
                     maintainAspectRatio: false,
                     plugins: {
-                        legend: { display: false },
+                        legend: { labels: { color: textColor } },
                         title: { display: false }
                     },
                     scales: {
-                        y: { ticks: { color: '#1e293b' }, grid: { color: 'rgba(0, 0, 0, 0.1)' } },
-                        x: { ticks: { color: '#1e293b' }, grid: { color: 'rgba(0, 0, 0, 0.1)' } }
+                        y: { ticks: { color: textColor }, grid: { color: gridColor }, title: { color: textColor, display: false } },
+                        x: { ticks: { color: textColor }, grid: { color: gridColor }, title: { color: textColor, display: false } }
                     }
                 };
 
@@ -698,7 +724,7 @@
                         labels: Object.keys(data.linkTypeCounts),
                         datasets: [{ data: Object.values(data.linkTypeCounts), backgroundColor: Object.keys(data.linkTypeCounts).map(k => PIE_COLORS[k]), borderColor: '#ffffff', borderWidth: 2 }]
                     },
-                    options: { ...sharedChartOptions, plugins: { ...sharedChartOptions.plugins, legend: { display: true, position: 'bottom', labels: { color: '#1e293b' } } } }
+                    options: { ...sharedChartOptions, plugins: { ...sharedChartOptions.plugins, legend: { ...sharedChartOptions.plugins.legend, position: 'bottom' } } }
                 });
                 
                 this.state.charts.regionChart = new Chart(document.getElementById('regionChart'), {
@@ -707,7 +733,7 @@
                         labels: Object.keys(data.regionCounts),
                         datasets: [{ label: 'จำนวนครั้ง', data: Object.values(data.regionCounts), backgroundColor: BAR_COLORS }]
                     },
-                    options: { ...sharedChartOptions }
+                    options: { ...sharedChartOptions, plugins: { ...sharedChartOptions.plugins, legend: { display: false } } }
                 });
 
                 this.state.charts.provinceChart = new Chart(document.getElementById('provinceChart'), {
