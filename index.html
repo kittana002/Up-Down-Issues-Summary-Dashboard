@@ -3,18 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>แดชบอร์ดสรุปข้อมูล WireLine & WDS Downtime</title>
+    <title>แดชบอร์ดสรุปข้อมูล Up/Down</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Sarabun:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
         body {
             font-family: 'Sarabun', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
-            background-color: #f3f4f6;
-        }
-        .dark body {
-            background-color: #111827;
+            background-color: #f8fafc;
         }
         .chart-card {
             height: 400px;
@@ -22,9 +19,8 @@
         /* Custom scrollbar */
         ::-webkit-scrollbar { width: 8px; height: 8px; }
         ::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 10px; }
-        .dark ::-webkit-scrollbar-track { background: #2d3748; }
-        ::-webkit-scrollbar-thumb { background: #888; border-radius: 10px; }
-        ::-webkit-scrollbar-thumb:hover { background: #555; }
+        ::-webkit-scrollbar-thumb { background: #94a3b8; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: #64748b; }
 
         /* Loading Spinner */
         #loading-overlay {
@@ -40,13 +36,10 @@
             z-index: 9999;
             transition: opacity 0.3s;
         }
-        .dark #loading-overlay {
-            background-color: rgba(17, 24, 39, 0.8);
-        }
         .spinner {
             width: 56px;
             height: 56px;
-            border: 7px solid #4f46e5;
+            border: 7px solid #4338ca;
             border-bottom-color: transparent;
             border-radius: 50%;
             display: inline-block;
@@ -70,8 +63,8 @@
             left: 50%;
             transform: translateX(-50%);
             margin-bottom: 8px;
-            background-color: #1f2937;
-            color: #ffffff;
+            background-color: #1e293b;
+            color: #f1f5f9;
             padding: 4px 8px;
             border-radius: 6px;
             font-size: 0.875rem;
@@ -100,30 +93,30 @@
         }
     </style>
 </head>
-<body class="bg-gray-100 dark:bg-gray-900">
+<body class="bg-slate-50">
 
     <div id="loading-overlay">
         <div class="spinner" role="status" aria-label="กำลังโหลดข้อมูล"></div>
     </div>
 
-    <div id="dashboard-container" class="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto text-gray-700 dark:text-gray-300 opacity-0 transition-opacity duration-500">
+    <div id="dashboard-container" class="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto text-slate-700 opacity-0 transition-opacity duration-500">
         <!-- Header -->
         <header class="mb-8">
             <div class="flex justify-between items-start flex-wrap gap-4">
                 <div>
-                    <h1 class="text-3xl font-bold text-gray-900 dark:text-gray-100">แดชบอร์ดสรุปข้อมูล Up/Down</h1>
-                    <p class="text-gray-500 dark:text-gray-400 mt-1">ภาพรวมสถานะการเชื่อมต่อและประเด็นที่ต้องให้ความสำคัญ</p>
+                    <h1 class="text-3xl font-bold text-slate-900">แดชบอร์ดสรุปข้อมูล Up/Down</h1>
+                    <p class="text-slate-500 mt-1">ภาพรวมสถานะการเชื่อมต่อและประเด็นที่ต้องให้ความสำคัญ</p>
                 </div>
                 <div class="flex flex-col items-end gap-4">
-                     <div id="last-updated" class="text-sm text-right text-gray-500 dark:text-gray-400" aria-live="polite">
+                     <div id="last-updated" class="text-sm text-right text-slate-500" aria-live="polite">
                         <!-- Last updated time will be injected here -->
                     </div>
                     <div class="flex items-center gap-3 flex-wrap justify-end">
-                        <button id="refresh-btn" class="flex items-center space-x-2 bg-gray-500 hover:bg-gray-600 text-white text-sm font-semibold py-2 px-3 rounded-lg shadow-md transition-colors duration-300">
+                        <button id="refresh-btn" class="flex items-center space-x-2 bg-slate-600 hover:bg-slate-700 text-white text-sm font-semibold py-2 px-3 rounded-lg shadow-md transition-colors duration-300">
                             <i data-lucide="refresh-cw" class="w-4 h-4"></i>
                             <span class="sr-only">รีเฟรชข้อมูล</span>
                         </button>
-                        <button id="download-all-btn" class="flex items-center space-x-2 bg-purple-500 hover:bg-purple-600 text-white text-sm font-semibold py-2 px-3 rounded-lg shadow-md transition-colors duration-300">
+                        <button id="download-all-btn" class="flex items-center space-x-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold py-2 px-3 rounded-lg shadow-md transition-colors duration-300">
                             <i data-lucide="download" class="w-4 h-4" aria-hidden="true"></i>
                             <span>โหลดข้อมูลทั้งหมด</span>
                         </button>
@@ -142,14 +135,14 @@
             <!-- Charts Row 1 -->
             <section aria-labelledby="charts-row1-heading" class="grid grid-cols-1 lg:grid-cols-5 gap-6 mb-8">
                 <h2 id="charts-row1-heading" class="sr-only">แผนภูมิสรุปผลแถวที่ 1</h2>
-                <div class="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-lg lg:col-span-2 chart-card flex flex-col">
-                    <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">ประเภท Link ที่มีปัญหา</h3>
+                <div class="bg-white p-6 rounded-2xl shadow-lg lg:col-span-2 chart-card flex flex-col">
+                    <h3 class="text-lg font-semibold text-slate-900 mb-4">ประเภท Link ที่มีปัญหา</h3>
                     <div class="relative flex-grow">
                         <canvas id="linkTypeChart"></canvas>
                     </div>
                 </div>
-                <div class="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-lg lg:col-span-3 chart-card flex flex-col">
-                    <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">10 อันดับสาขาที่เกิดปัญหาบ่อยที่สุด</h3>
+                <div class="bg-white p-6 rounded-2xl shadow-lg lg:col-span-3 chart-card flex flex-col">
+                    <h3 class="text-lg font-semibold text-slate-900 mb-4">10 อันดับสาขาที่เกิดปัญหาบ่อยที่สุด</h3>
                     <div id="topIssuesList" class="space-y-3 pr-2 overflow-y-auto flex-grow">
                         <!-- Top issues list will be injected here -->
                     </div>
@@ -159,14 +152,14 @@
             <!-- Charts Row 2 -->
             <section aria-labelledby="charts-row2-heading" class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
                  <h2 id="charts-row2-heading" class="sr-only">แผนภูมิสรุปผลแถวที่ 2</h2>
-                <div class="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-lg chart-card flex flex-col">
-                   <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">จำนวนปัญหาตามภาค</h3>
+                <div class="bg-white p-6 rounded-2xl shadow-lg chart-card flex flex-col">
+                   <h3 class="text-lg font-semibold text-slate-900 mb-4">จำนวนปัญหาตามภาค</h3>
                    <div class="relative flex-grow">
                        <canvas id="regionChart"></canvas>
                     </div>
                 </div>
-                 <div class="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-lg chart-card flex flex-col">
-                   <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">10 จังหวัดที่เกิดปัญหาบ่อยที่สุด</h3>
+                 <div class="bg-white p-6 rounded-2xl shadow-lg chart-card flex flex-col">
+                   <h3 class="text-lg font-semibold text-slate-900 mb-4">10 จังหวัดที่เกิดปัญหาบ่อยที่สุด</h3>
                    <div class="relative flex-grow">
                        <canvas id="provinceChart"></canvas>
                     </div>
@@ -174,21 +167,21 @@
             </section>
             
             <!-- Recent Events -->
-            <section aria-labelledby="recent-events-heading" class="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-lg mb-8">
-                 <h2 id="recent-events-heading" class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">สรุปเหตุการณ์ Up/Down</h2>
+            <section aria-labelledby="recent-events-heading" class="bg-white p-6 rounded-2xl shadow-lg mb-8">
+                 <h2 id="recent-events-heading" class="text-lg font-semibold text-slate-900 mb-4">สรุปเหตุการณ์ Up/Down</h2>
                  <div id="recent-events-container" class="max-h-96 overflow-y-auto">
                      <!-- Recent events accordion will be injected here -->
                  </div>
             </section>
 
             <!-- Attention Table -->
-            <section aria-labelledby="attention-table-heading" class="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-lg">
+            <section aria-labelledby="attention-table-heading" class="bg-white p-6 rounded-2xl shadow-lg">
                 <div class="flex justify-between items-center mb-4 flex-wrap gap-2">
-                    <h2 id="attention-table-heading" class="text-lg font-semibold text-gray-900 dark:text-gray-100">ตารางข้อมูลเหตุการณ์ทั้งหมด</h2>
+                    <h2 id="attention-table-heading" class="text-lg font-semibold text-slate-900">ตารางข้อมูลเหตุการณ์ทั้งหมด</h2>
                 </div>
                 <div class="overflow-x-auto">
-                    <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400">
-                        <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
+                    <table class="w-full text-sm text-left text-slate-500">
+                        <thead class="text-xs text-slate-700 uppercase bg-slate-50">
                             <tr>
                                 <th scope="col" class="px-6 py-3">วันที่</th>
                                 <th scope="col" class="px-6 py-3">รอบ</th>
@@ -631,7 +624,12 @@
                     return acc;
                 }, {});
                 
-                const recentEvents = Object.entries(eventsByDate).map(([date, data]) => ({ date, ...data })).sort((a,b) => new Date(b.date) - new Date(a.date));
+                const recentEvents = Object.entries(eventsByDate).map(([date, data]) => ({ date, ...data })).sort((a,b) => {
+                    const dateA = a.date.split('/').reverse().join('-');
+                    const dateB = b.date.split('/').reverse().join('-');
+                    return new Date(dateB) - new Date(dateA);
+                });
+
 
                 return {
                     totalIssues: data.length,
@@ -660,17 +658,17 @@
                 const mostProblematicRegion = Object.keys(regionCounts).length > 0 ? Object.keys(regionCounts).reduce((a, b) => regionCounts[a] > regionCounts[b] ? a : b, 'N/A') : 'N/A';
                 
                 container.innerHTML = `
-                    <div class="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-lg" data-tooltip="จำนวนเหตุการณ์ Up/Down ทั้งหมดที่บันทึก">
-                        <div class="flex items-center"><div class="p-3 rounded-xl mr-4 bg-red-500"><i data-lucide="alert-circle" class="h-6 w-6 text-white"></i></div><div><p class="text-sm text-gray-500 dark:text-gray-400 font-medium">รวมทุกเหตุการณ์</p><p class="text-2xl font-bold text-gray-800 dark:text-gray-100">${data.totalIssues}</p></div></div>
+                    <div class="bg-white p-6 rounded-2xl shadow-lg" data-tooltip="จำนวนเหตุการณ์ Up/Down ทั้งหมดที่บันทึก">
+                        <div class="flex items-center"><div class="p-3 rounded-xl mr-4 bg-red-500"><i data-lucide="alert-circle" class="h-6 w-6 text-white"></i></div><div><p class="text-sm text-gray-500 font-medium">รวมทุกเหตุการณ์</p><p class="text-2xl font-bold text-gray-800">${data.totalIssues}</p></div></div>
                     </div>
-                    <div class="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-lg" data-tooltip="จำนวนปัญหาที่เกิดกับ Main Link">
-                        <div class="flex items-center"><div class="p-3 rounded-xl mr-4 bg-blue-500"><i data-lucide="arrow-up-circle" class="h-6 w-6 text-white"></i></div><div><p class="text-sm text-gray-500 dark:text-gray-400 font-medium">ปัญหา Main Link</p><p class="text-2xl font-bold text-gray-800 dark:text-gray-100">${data.linkTypeCounts['Main Link (FTTX)'] || 0}</p></div></div>
+                    <div class="bg-white p-6 rounded-2xl shadow-lg" data-tooltip="จำนวนปัญหาที่เกิดกับ Main Link">
+                        <div class="flex items-center"><div class="p-3 rounded-xl mr-4 bg-blue-500"><i data-lucide="arrow-up-circle" class="h-6 w-6 text-white"></i></div><div><p class="text-sm text-gray-500 font-medium">ปัญหา Main Link</p><p class="text-2xl font-bold text-gray-800">${data.linkTypeCounts['Main Link (FTTX)'] || 0}</p></div></div>
                     </div>
-                     <div class="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-lg" data-tooltip="จำนวนปัญหาที่เกิดกับ Backup 4G">
-                        <div class="flex items-center"><div class="p-3 rounded-xl mr-4 bg-yellow-500"><i data-lucide="arrow-down-circle" class="h-6 w-6 text-white"></i></div><div><p class="text-sm text-gray-500 dark:text-gray-400 font-medium">ปัญหา Backup 4G</p><p class="text-2xl font-bold text-gray-800 dark:text-gray-100">${data.linkTypeCounts['Backup 4G'] || 0}</p></div></div>
+                     <div class="bg-white p-6 rounded-2xl shadow-lg" data-tooltip="จำนวนปัญหาที่เกิดกับ Backup 4G">
+                        <div class="flex items-center"><div class="p-3 rounded-xl mr-4 bg-yellow-500"><i data-lucide="arrow-down-circle" class="h-6 w-6 text-white"></i></div><div><p class="text-sm text-gray-500 font-medium">ปัญหา Backup 4G</p><p class="text-2xl font-bold text-gray-800">${data.linkTypeCounts['Backup 4G'] || 0}</p></div></div>
                     </div>
-                    <div class="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-lg" data-tooltip="ภาคที่พบปัญหาบ่อยที่สุด">
-                        <div class="flex items-center"><div class="p-3 rounded-xl mr-4 bg-orange-500"><i data-lucide="globe" class="h-6 w-6 text-white"></i></div><div><p class="text-sm text-gray-500 dark:text-gray-400 font-medium">ภาคที่เกิดปัญหาบ่อยสุด</p><p class="text-2xl font-bold text-gray-800 dark:text-gray-100">${mostProblematicRegion}</p></div></div>
+                    <div class="bg-white p-6 rounded-2xl shadow-lg" data-tooltip="ภาคที่พบปัญหาบ่อยที่สุด">
+                        <div class="flex items-center"><div class="p-3 rounded-xl mr-4 bg-orange-500"><i data-lucide="globe" class="h-6 w-6 text-white"></i></div><div><p class="text-sm text-gray-500 font-medium">ภาคที่เกิดปัญหาบ่อยสุด</p><p class="text-2xl font-bold text-gray-800">${mostProblematicRegion}</p></div></div>
                     </div>
                 `;
             },
@@ -678,24 +676,19 @@
             renderCharts(data) {
                 const BAR_COLORS = ['#60A5FA', '#A78BFA', '#F472B6', '#FBBF24', '#34D399', '#FB923C', '#4ADE80', '#2DD4BF', '#818CF8', '#E879F9'];
                 const PIE_COLORS = { 'Main Link (FTTX)': '#3B82F6', 'Backup 4G': '#F59E0B' };
-                const isDarkMode = document.documentElement.classList.contains('dark') || document.body.classList.contains('dark');
-                const textColor = isDarkMode ? 'rgba(236, 239, 241, 0.9)' : 'rgba(55, 65, 81, 1)';
-                const gridColor = isDarkMode ? 'rgba(255, 255, 255, 0.15)' : 'rgba(0, 0, 0, 0.1)';
                 
-                Chart.defaults.color = textColor;
-
                 Object.values(this.state.charts).forEach(chart => chart.destroy());
 
                 const sharedChartOptions = {
                     responsive: true,
                     maintainAspectRatio: false,
                     plugins: {
-                        legend: { labels: { color: textColor } },
-                        title: { color: textColor }
+                        legend: { display: false },
+                        title: { display: false }
                     },
                     scales: {
-                        y: { ticks: { color: textColor }, grid: { color: gridColor }, title: { color: textColor, display: false } },
-                        x: { ticks: { color: textColor }, grid: { color: gridColor }, title: { color: textColor, display: false } }
+                        y: { ticks: { color: '#1e293b' }, grid: { color: 'rgba(0, 0, 0, 0.1)' } },
+                        x: { ticks: { color: '#1e293b' }, grid: { color: 'rgba(0, 0, 0, 0.1)' } }
                     }
                 };
 
@@ -703,9 +696,9 @@
                     type: 'pie',
                     data: {
                         labels: Object.keys(data.linkTypeCounts),
-                        datasets: [{ data: Object.values(data.linkTypeCounts), backgroundColor: Object.keys(data.linkTypeCounts).map(k => PIE_COLORS[k]), borderColor: isDarkMode ? '#111827' : '#ffffff', borderWidth: 2 }]
+                        datasets: [{ data: Object.values(data.linkTypeCounts), backgroundColor: Object.keys(data.linkTypeCounts).map(k => PIE_COLORS[k]), borderColor: '#ffffff', borderWidth: 2 }]
                     },
-                    options: { ...sharedChartOptions, plugins: { ...sharedChartOptions.plugins, legend: { ...sharedChartOptions.plugins.legend, position: 'bottom' } } }
+                    options: { ...sharedChartOptions, plugins: { ...sharedChartOptions.plugins, legend: { display: true, position: 'bottom', labels: { color: '#1e293b' } } } }
                 });
                 
                 this.state.charts.regionChart = new Chart(document.getElementById('regionChart'), {
@@ -714,7 +707,7 @@
                         labels: Object.keys(data.regionCounts),
                         datasets: [{ label: 'จำนวนครั้ง', data: Object.values(data.regionCounts), backgroundColor: BAR_COLORS }]
                     },
-                    options: { ...sharedChartOptions, plugins: { ...sharedChartOptions.plugins, legend: { display: false } } }
+                    options: { ...sharedChartOptions }
                 });
 
                 this.state.charts.provinceChart = new Chart(document.getElementById('provinceChart'), {
@@ -726,7 +719,6 @@
                     options: { 
                         ...sharedChartOptions,
                         indexAxis: 'y', 
-                        plugins: { ...sharedChartOptions.plugins, legend: { display: false } },
                         scales: { ...sharedChartOptions.scales, y: { ...sharedChartOptions.scales.y, ticks: { ...sharedChartOptions.scales.y.ticks, font: { size: 10 } } } }
                     }
                 });
@@ -735,18 +727,18 @@
             renderTopIssuesList(data) {
                 const container = document.getElementById('topIssuesList');
                 if (data.topStoreIssues.length === 0) {
-                    container.innerHTML = '<p class="text-center text-gray-500 dark:text-gray-400">ไม่มีข้อมูล</p>';
+                    container.innerHTML = '<p class="text-center text-gray-500">ไม่มีข้อมูล</p>';
                     return;
                 }
                 const maxCount = Math.max(...data.topStoreIssues.map(d => d.count));
                 container.innerHTML = data.topStoreIssues.map(item => `
-                    <div class="bg-gray-100 dark:bg-gray-700/50 p-3 rounded-lg">
+                    <div class="bg-gray-100 p-3 rounded-lg">
                         <div class="flex justify-between items-center mb-2 gap-2 flex-wrap">
-                            <p class="font-bold text-sm text-gray-800 dark:text-white truncate pr-2 flex-1 min-w-0">${item.name} (${item.id})</p>
-                            <p class="text-sm font-semibold text-red-500 dark:text-red-400 whitespace-nowrap flex-shrink-0">${item.count} ครั้ง</p>
+                            <p class="font-bold text-sm text-gray-800 truncate pr-2 flex-1 min-w-0">${item.name} (${item.id})</p>
+                            <p class="text-sm font-semibold text-indigo-600 whitespace-nowrap flex-shrink-0">${item.count} ครั้ง</p>
                         </div>
-                        <div class="w-full bg-gray-200 dark:bg-gray-600 rounded-full h-2.5" aria-label="แถบแสดงจำนวนปัญหา">
-                            <div class="bg-red-500 h-2.5 rounded-full" style="width: ${maxCount > 0 ? (item.count / maxCount) * 100 : 0}%"></div>
+                        <div class="w-full bg-gray-200 rounded-full h-2.5" aria-label="แถบแสดงจำนวนปัญหา">
+                            <div class="bg-indigo-500 h-2.5 rounded-full" style="width: ${maxCount > 0 ? (item.count / maxCount) * 100 : 0}%"></div>
                         </div>
                     </div>
                 `).join('');
@@ -758,7 +750,7 @@
                 const data = this.state.allEventsData;
 
                 if (data.length === 0) {
-                    tableBody.innerHTML = `<tr><td colspan="7" class="text-center py-8 text-gray-500 dark:text-gray-400">ไม่พบข้อมูล</td></tr>`;
+                    tableBody.innerHTML = `<tr><td colspan="7" class="text-center py-8 text-gray-500">ไม่พบข้อมูล</td></tr>`;
                     return;
                 }
 
@@ -767,12 +759,12 @@
                 const paginatedData = data.slice(startIndex, endIndex);
 
                 tableBody.innerHTML = paginatedData.map(item => `
-                    <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600">
+                    <tr class="bg-white border-b hover:bg-gray-50">
                         <td class="px-6 py-4">${item['วันที่ (Date)'] || 'N/A'}</td>
                         <td class="px-6 py-4">${item['รอบ (Period)'] || 'N/A'}</td>
                         <td class="px-6 py-4">${item['ประเภท Link (Link Type)'] || 'N/A'}</td>
                         <td class="px-6 py-4">${item['รหัสร้าน (Store ID)'] || 'N/A'}</td>
-                        <td class="px-6 py-4 font-medium text-gray-900 dark:text-white whitespace-nowrap">${item['ชื่อร้าน (Store Name)'] || 'N/A'}</td>
+                        <td class="px-6 py-4 font-medium text-gray-900 whitespace-nowrap">${item['ชื่อร้าน (Store Name)'] || 'N/A'}</td>
                         <td class="px-6 py-4">${item['จังหวัด (Province)'] || 'N/A'}</td>
                         <td class="px-6 py-4">${item['ภาค (Region)'] || 'N/A'}</td>
                     </tr>
@@ -794,7 +786,7 @@
 
                 let paginationHTML = '<nav aria-label="Pagination"><ul class="flex items-center -space-x-px h-8 text-sm">';
                 
-                paginationHTML += `<li><button id="prev-page" class="flex items-center justify-center px-3 h-8 ms-0 leading-tight text-gray-500 bg-white border border-e-0 border-gray-300 rounded-s-lg hover:bg-gray-100 hover:text-gray-700 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white" ${currentPage === 1 ? 'disabled' : ''}>ก่อนหน้า</button></li>`;
+                paginationHTML += `<li><button id="prev-page" class="flex items-center justify-center px-3 h-8 ms-0 leading-tight text-gray-500 bg-white border border-e-0 border-gray-300 rounded-s-lg hover:bg-gray-100 hover:text-gray-700" ${currentPage === 1 ? 'disabled' : ''}>ก่อนหน้า</button></li>`;
 
                 const pagesPerBlock = 5;
                 const currentBlock = Math.ceil(currentPage / pagesPerBlock);
@@ -802,12 +794,12 @@
                 const endPage = Math.min(startPage + pagesPerBlock - 1, totalPages);
 
                 for (let i = startPage; i <= endPage; i++) {
-                    const activeClasses = 'z-10 flex items-center justify-center px-3 h-8 leading-tight text-blue-600 border border-blue-300 bg-blue-50 hover:bg-blue-100 hover:text-blue-700 dark:border-gray-700 dark:bg-gray-700 dark:text-white';
-                    const defaultClasses = 'flex items-center justify-center px-3 h-8 leading-tight text-gray-500 bg-white border border-gray-300 hover:bg-gray-100 hover:text-gray-700 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white';
+                    const activeClasses = 'z-10 flex items-center justify-center px-3 h-8 leading-tight text-blue-600 border border-blue-300 bg-blue-50 hover:bg-blue-100 hover:text-blue-700';
+                    const defaultClasses = 'flex items-center justify-center px-3 h-8 leading-tight text-gray-500 bg-white border border-gray-300 hover:bg-gray-100 hover:text-gray-700';
                     paginationHTML += `<li><button data-page="${i}" class="${currentPage === i ? activeClasses : defaultClasses}">${i}</button></li>`;
                 }
 
-                paginationHTML += `<li><button id="next-page" class="flex items-center justify-center px-3 h-8 leading-tight text-gray-500 bg-white border border-gray-300 rounded-e-lg hover:bg-gray-100 hover:text-gray-700 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white" ${currentPage === totalPages ? 'disabled' : ''}>ถัดไป</button></li>`;
+                paginationHTML += `<li><button id="next-page" class="flex items-center justify-center px-3 h-8 leading-tight text-gray-500 bg-white border border-gray-300 rounded-e-lg hover:bg-gray-100 hover:text-gray-700" ${currentPage === totalPages ? 'disabled' : ''}>ถัดไป</button></li>`;
 
                 paginationHTML += '</ul></nav>';
                 container.innerHTML = paginationHTML;
@@ -816,25 +808,25 @@
             renderRecentEvents(data) {
                 const container = document.getElementById('recent-events-container');
                  if (data.recentEvents.length === 0) {
-                    container.innerHTML = '<p class="text-center text-gray-500 dark:text-gray-400">ไม่มีข้อมูลเหตุการณ์ล่าสุด</p>';
+                    container.innerHTML = '<p class="text-center text-gray-500">ไม่มีข้อมูลเหตุการณ์ล่าสุด</p>';
                     return;
                 }
                 container.innerHTML = data.recentEvents.map((event, idx) => `
-                    <div class="border-b border-gray-200 dark:border-gray-700">
+                    <div class="border-b border-gray-200">
                         <details class="group" ${idx < 3 ? 'open' : ''}>
-                            <summary class="flex justify-between items-center w-full py-3 px-1 text-left font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer list-none">
+                            <summary class="flex justify-between items-center w-full py-3 px-1 text-left font-medium text-gray-700 hover:bg-gray-100 cursor-pointer list-none">
                                 <span>วันที่: ${event.date}</span>
                                 <i data-lucide="chevron-down" class="w-5 h-5 transition-transform group-open:rotate-180"></i>
                             </summary>
-                            <div class="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-b-lg">
+                            <div class="p-4 bg-gray-50 rounded-b-lg">
                                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <div>
-                                        <h4 class="font-semibold mb-2 text-red-500 dark:text-red-400">Main Link Issues (${event.main.length})</h4>
-                                        <ul class="list-disc list-inside text-sm space-y-1 text-gray-600 dark:text-gray-300">${event.main.length > 0 ? event.main.map(store => `<li key=${store.id}>${store.id} - ${store.name}</li>`).join('') : '<li>ไม่มี</li>'}</ul>
+                                        <h4 class="font-semibold mb-2 text-indigo-600">Main Link Issues (${event.main.length})</h4>
+                                        <ul class="list-disc list-inside text-sm space-y-1 text-gray-600">${event.main.length > 0 ? event.main.map(store => `<li key=${store.id}>${store.id} - ${store.name}</li>`).join('') : '<li>ไม่มี</li>'}</ul>
                                     </div>
                                     <div>
-                                        <h4 class="font-semibold mb-2 text-blue-500 dark:text-blue-400">Backup 4G Issues (${event.backup.length})</h4>
-                                        <ul class="list-disc list-inside text-sm space-y-1 text-gray-600 dark:text-gray-300">${event.backup.length > 0 ? event.backup.map(store => `<li key=${store.id}>${store.id} - ${store.name}</li>`).join('') : '<li>ไม่มี</li>'}</ul>
+                                        <h4 class="font-semibold mb-2 text-sky-600">Backup 4G Issues (${event.backup.length})</h4>
+                                        <ul class="list-disc list-inside text-sm space-y-1 text-gray-600">${event.backup.length > 0 ? event.backup.map(store => `<li key=${store.id}>${store.id} - ${store.name}</li>`).join('') : '<li>ไม่มี</li>'}</ul>
                                     </div>
                                 </div>
                             </div>
