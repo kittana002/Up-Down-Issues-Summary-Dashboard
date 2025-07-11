@@ -561,6 +561,26 @@
             // --- Data Processing ---
             processData() {
                 const data = this.state.allEventsData;
+                
+                const findTopItem = (data, columnName) => {
+                    const counts = data.reduce((acc, d) => {
+                        const item = d[columnName];
+                        if (item && item.trim() !== '' && item.trim() !== '-' && item.trim().toLowerCase() !== 'n/a') {
+                            acc[item] = (acc[item] || 0) + 1;
+                        }
+                        return acc;
+                    }, {});
+
+                    if (Object.keys(counts).length === 0) {
+                        return 'N/A';
+                    }
+
+                    return Object.keys(counts).reduce((a, b) => counts[a] > counts[b] ? a : b);
+                };
+
+                const topSymptom = findTopItem(data, 'อาการที่พบ');
+                const topCause = findTopItem(data, 'สาเหตุ');
+                const topSolution = findTopItem(data, 'วิธีการแก้ไข');
 
                 const linkTypeCounts = data.reduce((acc, d) => {
                     const type = d['ประเภท Link (Link Type)'];
@@ -638,19 +658,52 @@
                     regionCounts,
                     topProvinces,
                     recentEvents,
-                    dateTrendData
+                    dateTrendData,
+                    topSymptom,
+                    topCause,
+                    topSolution
                 };
             },
 
             // --- Rendering Functions ---
             render() {
                 const data = this.processData();
+                this.renderProblemSummary(data);
                 this.renderKPIs(data);
                 this.renderCharts(data);
                 this.renderTopIssuesList(data);
                 this.renderRecentEvents(data);
                 this.renderAttentionTable();
                 lucide.createIcons();
+            },
+
+            renderProblemSummary(data) {
+                const container = document.getElementById('problem-summary-section');
+                container.innerHTML = `
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <div class="bg-white p-6 rounded-2xl shadow-lg flex items-start space-x-4">
+                            <div class="bg-yellow-100 p-3 rounded-full"><i data-lucide="alert-triangle" class="w-8 h-8 text-yellow-600"></i></div>
+                            <div>
+                                <p class="text-sm text-gray-500 font-medium">อาการที่พบบ่อยที่สุด</p>
+                                <p class="text-lg font-bold text-gray-800">${data.topSymptom}</p>
+                            </div>
+                        </div>
+                        <div class="bg-white p-6 rounded-2xl shadow-lg flex items-start space-x-4">
+                            <div class="bg-red-100 p-3 rounded-full"><i data-lucide="wrench" class="w-8 h-8 text-red-600"></i></div>
+                            <div>
+                                <p class="text-sm text-gray-500 font-medium">สาเหตุส่วนใหญ่</p>
+                                <p class="text-lg font-bold text-gray-800">${data.topCause}</p>
+                            </div>
+                        </div>
+                        <div class="bg-white p-6 rounded-2xl shadow-lg flex items-start space-x-4">
+                            <div class="bg-green-100 p-3 rounded-full"><i data-lucide="shield-check" class="w-8 h-8 text-green-600"></i></div>
+                            <div>
+                                <p class="text-sm text-gray-500 font-medium">วิธีการแก้ไขที่ใช้บ่อย</p>
+                                <p class="text-lg font-bold text-gray-800">${data.topSolution}</p>
+                            </div>
+                        </div>
+                    </div>
+                `;
             },
             
             renderKPIs(data) {
