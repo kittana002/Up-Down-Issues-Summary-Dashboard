@@ -562,7 +562,7 @@
             processData() {
                 const data = this.state.allEventsData;
                 
-                const findTopItem = (data, columnName) => {
+                const createDetailedSummary = (data, columnName) => {
                     const counts = data.reduce((acc, d) => {
                         const item = d[columnName];
                         if (item && item.trim() !== '' && item.trim() !== '-' && item.trim().toLowerCase() !== 'n/a') {
@@ -571,16 +571,24 @@
                         return acc;
                     }, {});
 
-                    if (Object.keys(counts).length === 0) {
-                        return 'N/A';
+                    const totalCount = Object.values(counts).reduce((sum, count) => sum + count, 0);
+
+                    if (totalCount === 0) {
+                        return [];
                     }
 
-                    return Object.keys(counts).reduce((a, b) => counts[a] > counts[b] ? a : b);
+                    return Object.entries(counts)
+                        .map(([name, count]) => ({
+                            name,
+                            count,
+                            percentage: Math.round((count / totalCount) * 100)
+                        }))
+                        .sort((a, b) => b.count - a.count);
                 };
 
-                const topSymptom = findTopItem(data, 'อาการที่พบ');
-                const topCause = findTopItem(data, 'สาเหตุ');
-                const topSolution = findTopItem(data, 'วิธีการแก้ไข');
+                const symptomDetails = createDetailedSummary(data, 'อาการที่พบ');
+                const causeDetails = createDetailedSummary(data, 'สาเหตุ');
+                const solutionDetails = createDetailedSummary(data, 'วิธีการแก้ไข');
 
                 const linkTypeCounts = data.reduce((acc, d) => {
                     const type = d['ประเภท Link (Link Type)'];
@@ -659,9 +667,9 @@
                     topProvinces,
                     recentEvents,
                     dateTrendData,
-                    topSymptom,
-                    topCause,
-                    topSolution
+                    symptomDetails,
+                    causeDetails,
+                    solutionDetails
                 };
             },
 
@@ -678,30 +686,52 @@
             },
 
             renderProblemSummary(data) {
+                const createSummaryCardHTML = (title, icon, color, details) => {
+                    if (details.length === 0) {
+                        return `
+                            <div class="bg-white p-6 rounded-2xl shadow-lg">
+                                <div class="flex items-center mb-2">
+                                    <div class="bg-${color}-100 p-3 rounded-full mr-4"><i data-lucide="${icon}" class="w-6 h-6 text-${color}-600"></i></div>
+                                    <div>
+                                        <p class="text-sm text-gray-500 font-medium">${title}</p>
+                                        <p class="text-lg font-bold text-gray-800">ไม่มีข้อมูล</p>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                    }
+
+                    let detailsHTML = details.map(item => `
+                        <div class="mt-2">
+                            <div class="flex justify-between mb-1">
+                                <span class="text-sm font-medium text-gray-700 truncate" title="${item.name}">${item.name}</span>
+                                <span class="text-sm font-medium text-gray-700">${item.percentage}%</span>
+                            </div>
+                            <div class="w-full bg-gray-200 rounded-full h-2.5">
+                                <div class="bg-${color}-400 h-2.5 rounded-full" style="width: ${item.percentage}%"></div>
+                            </div>
+                        </div>
+                    `).join('');
+
+                    return `
+                        <div class="bg-white p-6 rounded-2xl shadow-lg">
+                            <div class="flex items-center mb-2">
+                                <div class="bg-${color}-100 p-3 rounded-full mr-4"><i data-lucide="${icon}" class="w-6 h-6 text-${color}-600"></i></div>
+                                <div><p class="text-lg font-semibold text-gray-800">${title}</p></div>
+                            </div>
+                            <div class="mt-4 max-h-48 overflow-y-auto pr-2">
+                                ${detailsHTML}
+                            </div>
+                        </div>
+                    `;
+                };
+                
                 const container = document.getElementById('problem-summary-section');
                 container.innerHTML = `
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                        <div class="bg-white p-6 rounded-2xl shadow-lg flex items-start space-x-4">
-                            <div class="bg-yellow-100 p-3 rounded-full"><i data-lucide="alert-triangle" class="w-8 h-8 text-yellow-600"></i></div>
-                            <div>
-                                <p class="text-sm text-gray-500 font-medium">อาการที่พบบ่อยที่สุด</p>
-                                <p class="text-lg font-bold text-gray-800">${data.topSymptom}</p>
-                            </div>
-                        </div>
-                        <div class="bg-white p-6 rounded-2xl shadow-lg flex items-start space-x-4">
-                            <div class="bg-red-100 p-3 rounded-full"><i data-lucide="wrench" class="w-8 h-8 text-red-600"></i></div>
-                            <div>
-                                <p class="text-sm text-gray-500 font-medium">สาเหตุส่วนใหญ่</p>
-                                <p class="text-lg font-bold text-gray-800">${data.topCause}</p>
-                            </div>
-                        </div>
-                        <div class="bg-white p-6 rounded-2xl shadow-lg flex items-start space-x-4">
-                            <div class="bg-green-100 p-3 rounded-full"><i data-lucide="shield-check" class="w-8 h-8 text-green-600"></i></div>
-                            <div>
-                                <p class="text-sm text-gray-500 font-medium">วิธีการแก้ไขที่ใช้บ่อย</p>
-                                <p class="text-lg font-bold text-gray-800">${data.topSolution}</p>
-                            </div>
-                        </div>
+                        ${createSummaryCardHTML('อาการที่พบ', 'alert-triangle', 'yellow', data.symptomDetails)}
+                        ${createSummaryCardHTML('สาเหตุ', 'wrench', 'red', data.causeDetails)}
+                        ${createSummaryCardHTML('วิธีการแก้ไข', 'shield-check', 'green', data.solutionDetails)}
                     </div>
                 `;
             },
