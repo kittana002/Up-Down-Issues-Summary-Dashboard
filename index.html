@@ -163,8 +163,8 @@ animation: rotation 1s linear infinite;
 <th scope="col" class="px-6 py-3">จังหวัด</th>																									
 <th scope="col" class="px-6 py-3">ภาค</th>																									
 <th scope="col" class="px-6 py-3">อาการที่พบ</th>																									
-<th scope="col" class="px-6 py-3">สาเหตุ</th>																									
-<th scope="col" class="px-6 py-3">วิธีการแก้ไข</th>																									
+<th>${parseFloat(row['สาเหตุ']).toFixed(3)}</th>
+<th>${parseFloat(row['วิธีการแก้ไข']).toFixed(3)}</th>																									
 </tr>																									
 </thead>																									
 <tbody id="attention-table-body">																									
