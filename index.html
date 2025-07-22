@@ -811,7 +811,7 @@ return Object.entries(counts)
 .map(([name, count]) => ({																									
 name,																									
 count,																									
-percentage: Math.round((count / totalCount) * 100)																									
+percentage: Math.round((count / totalCount) * 100).toFixed(3)																									
 }))																									
 .sort((a, b) => b.count - a.count);																									
 };																									
