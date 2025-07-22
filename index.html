@@ -792,25 +792,12 @@ this.state.allEventsData = [];
 processData() {																									
 const data = this.state.allEventsData;																									
 																									
-const createDetailedSummary = (data, columnName) => {
-  const counts = data.reduce((acc, d) => {
-    const item = d[columnName];
-    if (item && typeof item === 'string' && item.trim() !== '' && item.trim() !== '-' && item.trim().toLowerCase() !== 'n/a') {
-      const cleanItem = item.trim();
-      acc[cleanItem] = (acc[cleanItem] || 0) + 1;
-    }
-    return acc;
-  }, {});
-
-  const formattedSummary = {};
-  for (const key in counts) {
-    const value = counts[key];
-    formattedSummary[key] = `${value.toFixed(3)} หน่วย`;
-  }
-
-  return formattedSummary;
-};
-																						
+const createDetailedSummary = (data, columnName) => {																									
+const counts = data.reduce((acc, d) => {																									
+const item = d[columnName];																									
+if (item && item.trim() !== '' && item.trim() !== '-' && item.trim().toLowerCase() !== 'n/a') {																									
+acc[item] = (acc[item] || 0) + 1;																									
+}																									
 return acc;																									
 }, {});																									
 																									
