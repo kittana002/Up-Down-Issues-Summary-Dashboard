@@ -1,23 +1,1231 @@
-<!DOCTYPE html>	
-<html lang="th">	
-<head>	
-<meta charset="UTF-8">	
-<meta name="viewport" content="width=device-width, initial-scale=1.0">	
-<title>แดชบอร์ดสรุปข้อมูล Up/Down</title>	
-<script src="https://cdn.tailwindcss.com"></script>	
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>	
-<script src="https://unpkg.com/lucide@latest"></script>	
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Sarabun:wght@400;500;600;700&display=swap" rel="stylesheet">	
-<style>	
-body {	
-font-family: 'Sarabun', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';	
-background-color: #f8fafc;	
-}	
-.chart-card {	
-height: 400px;	
-}	
-/* Custom scrollbar */	
-::-webkit-scrollbar { width: 8px; height: 8px; }	
-::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 10px; }	
-::-webkit-scrollbar-thumb { background: #94a3b8; border-radius: 10px; }	
-::-webkit-scrollbar-thumb:hover { background: #64748b; }	
+																									
+<!DOCTYPE html>																									
+<html lang="th">																									
+<head>																									
+<meta charset="UTF-8">																									
+<meta name="viewport" content="width=device-width, initial-scale=1.0">																									
+<title>แดชบอร์ดสรุปข้อมูล Up/Down</title>																									
+<script src="https://cdn.tailwindcss.com"></script>																									
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>																									
+<script src="https://unpkg.com/lucide@latest"></script>																									
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Sarabun:wght@400;500;600;700&display=swap" rel="stylesheet">																									
+<style>																									
+body {																									
+font-family: 'Sarabun', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';																									
+background-color: #f8fafc;																									
+}																									
+.chart-card {																									
+height: 400px;																									
+}																									
+/* Custom scrollbar */																									
+::-webkit-scrollbar { width: 8px; height: 8px; }																									
+::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 10px; }																									
+::-webkit-scrollbar-thumb { background: #94a3b8; border-radius: 10px; }																									
+::-webkit-scrollbar-thumb:hover { background: #64748b; }																									
+																									
+/* Loading Spinner */																									
+#loading-overlay {																									
+position: fixed;																									
+top: 0;																									
+left: 0;																									
+width: 100%;																									
+height: 100%;																									
+background-color: rgba(255, 255, 255, 0.8);																									
+display: flex;																									
+justify-content: center;																									
+align-items: center;																									
+z-index: 9999;																									
+transition: opacity 0.3s;																									
+}																									
+.spinner {																									
+width: 56px;																									
+height: 56px;																									
+border: 7px solid #4338ca;																									
+border-bottom-color: transparent;																									
+border-radius: 50%;																									
+display: inline-block;																									
+box-sizing: border-box;																									
+animation: rotation 1s linear infinite;																									
+}																									
+@keyframes rotation {																									
+0% { transform: rotate(0deg); }																									
+100% { transform: rotate(360deg); }																									
+}																									
+</style>																									
+</head>																									
+<body class="bg-slate-50">																									
+																									
+<div id="loading-overlay">																									
+<div class="spinner" role="status" aria-label="กำลังโหลดข้อมูล"></div>																									
+</div>																									
+																									
+<div id="dashboard-container" class="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto text-slate-700 opacity-0 transition-opacity duration-500">																									
+<!-- Header -->																									
+<header class="mb-8">																									
+<div class="flex justify-between items-start flex-wrap gap-4">																									
+<div>																									
+<h1 class="text-3xl font-bold text-slate-900">แดชบอร์ดสรุปข้อมูล Up/Down</h1>																									
+<p class="text-slate-500 mt-1">ภาพรวมสถานะการเชื่อมต่อและประเด็นที่ต้องให้ความสำคัญ</p>																									
+</div>																									
+<div class="flex flex-col items-end gap-4">																									
+<div id="last-updated" class="text-sm text-right text-slate-500" aria-live="polite">																									
+<!-- Last updated time will be injected here -->																									
+</div>																									
+<div class="flex items-center gap-3 flex-wrap justify-end">																									
+<button id="refresh-btn" class="flex items-center space-x-2 bg-slate-600 hover:bg-slate-700 text-white text-sm font-semibold py-2 px-3 rounded-lg shadow-md transition-colors duration-300">																									
+<i data-lucide="refresh-cw" class="w-4 h-4"></i>																									
+<span class="sr-only">รีเฟรชข้อมูล</span>																									
+</button>																									
+<button id="download-all-btn" class="flex items-center space-x-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold py-2 px-3 rounded-lg shadow-md transition-colors duration-300">																									
+<i data-lucide="download" class="w-4 h-4" aria-hidden="true"></i>																									
+<span>โหลดข้อมูลทั้งหมด</span>																									
+</button>																									
+</div>																									
+</div>																									
+</header>																									
+																									
+<main>																									
+<!-- Problem Summary Section -->																									
+<section id="problem-summary-section" class="mb-8">																									
+<!-- Summary cards will be injected here -->																									
+</section>																									
+																									
+<!-- KPIs -->																									
+<section id="kpi-container" aria-labelledby="kpi-heading" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">																									
+<!-- KPIs will be injected here -->																									
+</section>																									
+																									
+<!-- Date Trend Chart -->																									
+<section aria-labelledby="date-trend-heading" class="mb-8">																									
+<div class="bg-white p-6 rounded-2xl shadow-lg chart-card flex flex-col">																									
+<h3 id="date-trend-heading" class="text-lg font-semibold text-slate-900 mb-4">จำนวนเคสที่เกิดขึ้นในแต่ละวัน</h3>																									
+<div class="relative flex-grow">																									
+<canvas id="dateTrendChart"></canvas>																									
+</div>																									
+</div>																									
+</section>																									
+																									
+<!-- Charts Row 1 -->																									
+<section aria-labelledby="charts-row1-heading" class="grid grid-cols-1 lg:grid-cols-5 gap-6 mb-8">																									
+<h2 id="charts-row1-heading" class="sr-only">แผนภูมิสรุปผลแถวที่ 1</h2>																									
+<div class="bg-white p-6 rounded-2xl shadow-lg lg:col-span-2 chart-card flex flex-col">																									
+<h3 class="text-lg font-semibold text-slate-900 mb-4">ประเภท Link ที่มีปัญหา</h3>																									
+<div class="relative flex-grow">																									
+<canvas id="linkTypeChart"></canvas>																									
+</div>																									
+</div>																									
+<div class="bg-white p-6 rounded-2xl shadow-lg lg:col-span-3 chart-card flex flex-col">																									
+<h3 class="text-lg font-semibold text-slate-900 mb-4">10 อันดับสาขาที่เกิดปัญหาบ่อยที่สุด</h3>																									
+<div id="topIssuesList" class="space-y-3 pr-2 overflow-y-auto flex-grow">																									
+<!-- Top issues list will be injected here -->																									
+</div>																									
+</div>																									
+</section>																									
+																									
+<!-- Charts Row 2 -->																									
+<section aria-labelledby="charts-row2-heading" class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">																									
+<h2 id="charts-row2-heading" class="sr-only">แผนภูมิสรุปผลแถวที่ 2</h2>																									
+<div class="bg-white p-6 rounded-2xl shadow-lg chart-card flex flex-col">																									
+<h3 class="text-lg font-semibold text-slate-900 mb-4">จำนวนปัญหาตามภาค</h3>																									
+<div class="relative flex-grow">																									
+<canvas id="regionChart"></canvas>																									
+</div>																									
+</div>																									
+<div class="bg-white p-6 rounded-2xl shadow-lg chart-card flex flex-col">																									
+<h3 class="text-lg font-semibold text-slate-900 mb-4">10 จังหวัดที่เกิดปัญหาบ่อยที่สุด</h3>																									
+<div class="relative flex-grow">																									
+<canvas id="provinceChart"></canvas>																									
+</div>																									
+</div>																									
+</section>																									
+																									
+<!-- Recent Events -->																									
+<section aria-labelledby="recent-events-heading" class="bg-white p-6 rounded-2xl shadow-lg mb-8">																									
+<h2 id="recent-events-heading" class="text-lg font-semibold text-slate-900 mb-4">สรุปเหตุการณ์ Up/Down</h2>																									
+<div id="recent-events-container" class="max-h-96 overflow-y-auto">																									
+<!-- Recent events accordion will be injected here -->																									
+</div>																									
+</section>																									
+																									
+<!-- Attention Table -->																									
+<section aria-labelledby="attention-table-heading" class="bg-white p-6 rounded-2xl shadow-lg">																									
+<div class="flex justify-between items-center mb-4 flex-wrap gap-2">																									
+<h2 id="attention-table-heading" class="text-lg font-semibold text-slate-900">ตารางข้อมูลเหตุการณ์ทั้งหมด</h2>																									
+</div>																									
+<div class="overflow-x-auto">																									
+<table class="w-full text-sm text-left text-slate-500">																									
+<thead class="text-xs text-slate-700 uppercase bg-slate-50">																									
+<tr>																									
+<th scope="col" class="px-6 py-3">วันที่</th>																									
+<th scope="col" class="px-6 py-3">รอบ</th>																									
+<th scope="col" class="px-6 py-3">ประเภท Link</th>																									
+<th scope="col" class="px-6 py-3">รหัสร้าน</th>																									
+<th scope="col" class="px-6 py-3">ชื่อร้าน</th>																									
+<th scope="col" class="px-6 py-3">จังหวัด</th>																									
+<th scope="col" class="px-6 py-3">ภาค</th>																									
+<th scope="col" class="px-6 py-3">อาการที่พบ</th>																									
+<th scope="col" class="px-6 py-3">สาเหตุ</th>																									
+<th scope="col" class="px-6 py-3">วิธีการแก้ไข</th>																									
+</tr>																									
+</thead>																									
+<tbody id="attention-table-body">																									
+<!-- Table rows will be injected here -->																									
+</tbody>																									
+</table>																									
+</div>																									
+<div id="pagination-container" class="flex justify-center mt-4">																									
+<!-- Pagination controls will be injected here -->																									
+</div>																									
+</section>																									
+</main>																									
+</div>																									
+																									
+<script type="module">																									
+// --- Application State and Configuration ---																									
+const app = {																									
+state: {																									
+allEventsData: [],																									
+charts: {},																									
+pagination: {																									
+currentPage: 1,																									
+itemsPerPage: 10,																									
+}																									
+},																									
+																									
+// --- Data Fetching and Parsing ---																									
+async fetchData() {																									
+const csvData = `วันที่ (Date)	ประเภท Link (Link Type)	รหัสร้าน (Store ID)	ชื่อร้าน (Store Name)	จังหวัด (Province)	ภาค (Region)	อาการที่พบ	สาเหตุ	วิธีการแก้ไข																	
+24/6/2025	Main Link	10460	บ้านป่าเป้า (จ.ลำพูน)	ลำพูน	ภาคเหนือ	Link Up/Down	Router Cisco819 เสีย	Change to Router huawei AR																	
+24/6/2025	Main Link	3032	Booth ซอยลูกหลวง	กรุงเทพมหานคร	ภาคกลาง	Link Up/Down	กำลังตรวจสอบ	ส่งช่างตรวจสอบแล้วยัง Up&down/ อยู่ในช่วงวิเคราะห์เชิงลึก/ส่งช่างเปลี่ยน WAN																	
+24/6/2025	Main Link	10622	LPN ศรีนครินทร์-หัวหมาก	กรุงเทพมหานคร	ภาคกลาง	Link Up/Down	Alarm Power	Alarm Power Clear																	
+24/6/2025	Main Link	10679	รพ.สมิติเวช ศรีนครินทร์	กรุงเทพมหานคร	ภาคกลาง	Link Up/Down	Alarm Power	Alarm Power Clear																	
+24/6/2025	Main Link	13624	หมู่บ้านดีพร้อม(ซอยพุฒสี) (BS)	สมุทรปราการ	ภาคกลาง	Link Up/Down	Link up	ไม่ได้ทำการแก้ไข																	
+24/6/2025	Backup 4G	13652	โรงพยาบาลมหาราชนครเชียงใหม่ (S เชียงใหม่)	เชียงใหม่	ภาคเหนือ	Link Up/Down	IP Sla 30	ไม่ได้ทำการแก้ไข																	
+24/6/2025	Backup 4G	11208	ปตท.เชียงใหม่-ดอยสะเก็ด	เชียงใหม่	ภาคเหนือ	Link Up/Down	IP Sla 30	ไม่ได้ทำการแก้ไข																	
+24/6/2025	Backup 4G	3853	อำเภอวังเหนือ	ลำปาง	ภาคเหนือ	Link Up/Down	IP Sla 30	ไม่ได้ทำการแก้ไข																	
+24/6/2025	Backup 4G	16789	ชุมชนดอนยายหอม (นครปฐม)	นครปฐม	ภาคกลาง	Link Up/Down	IP Sla 30	ไม่ได้ทำการแก้ไข																	
+24/6/2025	Backup 4G	9984	หัวถนน ซ. 11	นครศรีธรรมราช	ภาคใต้	Link Up/Down	IP Sla 30	ไม่ได้ทำการแก้ไข																	
+24/6/2025	Backup 4G	7550	หนองดินแดง	นครปฐม	ภาคกลาง	Link Up/Down	IP Sla 30	ไม่ได้ทำการแก้ไข																	
+24/6/2025	Backup 4G	4645	ห้าแยกสันติธรรม 2	เชียงใหม่	ภาคเหนือ	Link Up/Down	IP Sla 30	ไม่ได้ทำการแก้ไข																	
+24/6/2025	Backup 4G	11063	ดอนตะโก	ราชบุรี	ภาคตะวันตก	Link Up/Down	IP Sla 30	ไม่ได้ทำการแก้ไข																	
+24/6/2025	Backup 4G	15994	ซอยโรงเหล็ก จุด 2	นครศรีธรรมราช	ภาคใต้	Link Up/Down	IP Sla 30	ไม่ได้ทำการแก้ไข																	
+24/6/2025	Backup 4G	9742	ชุมตาบง	นครสวรรค์	ภาคกลาง	Link Up/Down	Router Cisco819 เสีย	Change to Router huawei AR																	
+24/6/2025	Main Link	5193	ท่าเรือแหลมเทียน	ตราด	ภาคตะวันออก	Link Up/Down	Router Cisco819 Hang	RESET (โดยเจ้าหน้าที่หน้างาน)																	
+24/6/2025	Main Link	8537	ชุมชนวัดคูยาง	กำแพงเพชร	ภาคกลาง	Link Up/Down	Alarm Power	Alarm Power Clear																	
+24/6/2025	Main Link	13078	มศว.ประสานมิตร(ประตู 3) (BS)	กรุงเทพมหานคร	ภาคกลาง	Link Up/Down	Alarm Power	Alarm Power Clear																	
+24/6/2025	Main Link	3032	Booth ซอยลูกหลวง	กรุงเทพมหานคร	ภาคกลาง	Link Up/Down	กำลังตรวจสอบ	ส่งช่างตรวจสอบแล้วยัง Up&down/ อยู่ในช่วงวิเคราะห์เชิงลึก/ส่งช่างเปลี่ยน WAN																	
+24/6/2025	Main Link	13150	สุขุมวิท-บ้านอำเภอ (RE)	ราชบุรี	ภาคตะวันตก	Link Up/Down	Alarm Power	Alarm Power Clear																	
+24/6/2025	Backup 4G	4645	ห้าแยกสันติธรรม 2	สุราษฎร์ธานี	ภาคใต้	Link Up/Down	Alarm Power	Alarm Power Clear																	
+24/6/2025	Backup 4G	6837	แยกห้วยไผ่	สุราษฎร์ธานี	ภาคใต้	Link Up/Down	Router Cisco819 Hang Hang	RESET (โดยเจ้าหน้าที่หน้างาน)																	
+24/6/2025	Backup 4G	16922	ลีเล็ด (ท่าฉาง)	สุราษฎร์ธานี	ภาคใต้	Link Up/Down	Router ONE540 เสีย	Change to Router huawei AR																	
+24/6/2025	Backup 4G	11208	ปตท.เชียงใหม่-ดอยสะเก็ด	ราชบุรี	ภาคตะวันตก	Link Up/Down	Alarm Power	Alarm Power Clear																	
+24/6/2025	Backup 4G	3010	ปตท.ตลาดเมืองใหม่	สุราษฎร์ธานี	ภาคใต้	Link Up/Down	IP Sla 30	ไม่ได้ทำการแก้ไข																	
+24/6/2025	Backup 4G	8628	ปตท.ทุ่งคอก	สระบุรี	ภาคกลาง	Link Up/Down	IP Sla 30	ไม่ได้ทำการแก้ไข																	
+24/6/2025	Backup 4G	6539	ปตท.จิงโจ้	ราชบุรี	ภาคตะวันตก	Link Up/Down	Router ONE540 เสีย	Change to Router huawei AR																	
+24/6/2025	Backup 4G	3126	สามแยกแหลมดิน 1	นครราชสีมา	ภาคตะวันออกเฉียงเหนือ	Link Up/Down	IP Sla 30	ไม่ได้ทำการแก้ไข																	
+24/6/2025	Backup 4G	3588	ชุมชนวัดบ้านอ้อย	สมุทรปราการ	ภาคกลาง	Link Up/Down	Alarm Power	Alarm Power Clear																	
+24/6/2025	Backup 4G	9628	อำเภอบางแพ	จันทบุรี	ภาคตะวันออก	Link Up/Down	Router ONE540 เสีย	Change to Router huawei AR																	
+25/6/2025	Main Link	10460	บ้านป่าเป้า (จ.ลำพูน)	ลำพูน	ภาคเหนือ	Link Up/Down	Router Cisco819 เสีย	ซ่อมแซม Router huawei AR																	
+25/6/2025	Main Link	18570	โป่งตาลอง(ปากช่อง)	กาญจนบุรี	ภาคตะวันตก	Link Up/Down	Alarm Power	Alarm Power Clear																	
+25/6/2025	Main Link	11534	กลางซอยศรีบุญเรือง	ลพบุรี	ภาคกลาง	Link Up/Down	Link up	ไม่ได้ทำการแก้ไข																	
+25/6/2025	Main Link	14985	PTTOR ทุ่งเบญจา (RE)	สระบุรี	ภาคกลาง	Link Up/Down	Alarm Power	Alarm Power Clear																	
+25/6/2025	Main Link	1292	ทรงสวัสดิ์	สมุทรสาคร	ภาคกลาง	Link Up/Down	Link up	ไม่ได้ทำการแก้ไข																	
+25/6/2025	Backup 4G	4645	ห้าแยกสันติธรรม 2	สมุทรสาคร	ภาคกลาง	Link Up/Down	virtual-ethernet 1 is DOWN	กำลังตรวจสอบสัญญาณ Sim																	
+25/6/2025	Backup 4G	9742	ชุมตาบง	เชียงราย	ภาคเหนือ	Link Up/Down	Router Cisco819 เสีย	Change to Router huawei AR																	
+25/6/2025	Backup 4G	9628	อำเภอบางแพ	กรุงเทพมหานคร	ภาคกลาง	Link Up/Down	Router ONE540 เสีย	Change to Router huawei AR																	
+25/6/2025	Backup 4G	2876	ถนนแม่น้ำแคว	กรุงเทพมหานคร	ภาคกลาง	Link Up/Down	Router ONE540 เสีย	Change to Router huawei AR																	
+25/6/2025	Backup 4G	6402	ลำนารายณ์ 3	สระบุรี	ภาคกลาง	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+25/6/2025	Backup 4G	10652	ปตท.พหลโยธินพระพุทธบาท	อุบลราชธานี	ภาคตะวันออกเฉียงเหนือ	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+25/6/2025	Backup 4G	15994	ซอยโรงเหล็ก จุด 2	สุพรรณบุรี	ภาคกลาง	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+25/6/2025	Backup 4G	7566	โรงพยาบาลเอกชัย	นครปฐม	ภาคกลาง	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+25/6/2025	Backup 4G	300	มหาชัย 2	นครศรีธรรมราช	ภาคใต้	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+25/6/2025	Backup 4G	10587	ตลาดป่ายาง	นครปฐม	ภาคกลาง	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+25/6/2025	Main Link	10460	บ้านป่าเป้า (จ.ลำพูน)	ลำพูน	ภาคเหนือ	Link Up/Down	Router Cisco819 เสีย	Change to Router huawei AR																	
+25/6/2025	Main Link	13142	บางแวก-สาย2(ซอยกล้วยไม้)BW	ลพบุรี	ภาคกลาง	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+25/6/2025	Main Link	2426	นานาเหนือ (สุขุมวิท 3)	สมุทรปราการ	ภาคกลาง	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+25/6/2025	Main Link	15405	ชุมชนเฟื่องฟ้า(ทับกวาง) (NC)	ชลบุรี	ภาคตะวันออก	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+25/6/2025	Main Link	16586	ดอนมดแดง	นครปฐม	ภาคกลาง	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+25/6/2025	Backup 4G	4645	ห้าแยกสันติธรรม 2	พระนครศรีอยุธยา	ภาคกลาง	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+25/6/2025	Backup 4G	15994	ซอยโรงเหล็ก จุด 2	สุพรรณบุรี	ภาคกลาง	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+25/6/2025	Backup 4G	16767	ตลาดสวนแตง	ปทุมธานี	ภาคกลาง	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+25/6/2025	Backup 4G	6539	ปตท.จิงโจ้	สระบุรี	ภาคกลาง	Link Up/Down	Link up	Link up no up-down																	
+25/6/2025	Backup 4G	2876	ถนนแม่น้ำแคว	กรุงเทพมหานคร	ภาคกลาง	Link Up/Down	Router ONE540 เสีย	Change to Router huawei AR																	
+25/6/2025	Backup 4G	9628	อำเภอบางแพ	มุกดาหาร	ภาคตะวันออกเฉียงเหนือ	Link Up/Down	Router ONE540 เสีย	Change to Router huawei AR																	
+25/6/2025	Backup 4G	10652	ปตท.พหลโยธินพระพุทธบาท	พิจิตร	ภาคกลาง	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+25/6/2025	Backup 4G	9271	ลาดปลาเค้า (นครปฐม)	เชียงใหม่	ภาคเหนือ	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+25/6/2025	Backup 4G	11045	พรุฉิมพลี ซอย 1	ชุมพร	ภาคใต้	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+25/6/2025	Backup 4G	10975	ชุมชนธรรมศาลา	พระนครศรีอยุธยา	ภาคกลาง	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+26/6/2025	Main Link	1637	ริเวอร์ปาร์ค	ปทุมธานี	ภาคกลาง	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+26/6/2025	Main Link	10460	บ้านป่าเป้า (จ.ลำพูน)	ลำพูน	ภาคเหนือ	Link Up/Down	Router Cisco819 เสีย	Change to Router huawei AR																	
+26/6/2025	Main Link	11590	ท่ามะนาว (RN)	สมุทรสาคร	ภาคกลาง	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+26/6/2025	Main Link	10630	ซอย อบต.เทพารักษ์	เชียงใหม่	ภาคเหนือ	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+26/6/2025	Main Link	9075	ตลาดหนองปรือ	ราชบุรี	ภาคตะวันตก	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+26/6/2025	Backup 4G	8056	ดอนขนาก	อุดรธานี	ภาคตะวันออกเฉียงเหนือ	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+26/6/2025	Backup 4G	9628	อำเภอบางแพ	สมุทรปราการ	ภาคกลาง	Link Up/Down	Router ONE540 เสีย	Change to Router huawei AR																	
+26/6/2025	Backup 4G	9742	ชุมตาบง	อุตรดิตถ์	ภาคเหนือ	Link Up/Down	Router Cisco819 เสีย	Change to Router huawei AR																	
+26/6/2025	Backup 4G	2876	ถนนแม่น้ำแคว	กรุงเทพมหานคร	ภาคกลาง	Link Up/Down	Router ONE540 เสีย	Change to Router huawei AR																	
+26/6/2025	Backup 4G	4477	ชุมชนวัดคานหาม 4	สมุทรสาคร	ภาคกลาง	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+26/6/2025	Backup 4G	16922	ลีเล็ด (ท่าฉาง)	สุราษฎร์ธานี	ภาคใต้	Link Up/Down	Router ONE540 เสีย	Change to Router huawei AR																	
+26/6/2025	Backup 4G	10587	ตลาดป่ายาง	อุตรดิตถ์	ภาคเหนือ	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+26/6/2025	Backup 4G	11045	พรุฉิมพลี ซอย 1	ตาก	ภาคตะวันตก	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+26/6/2025	Backup 4G	5502	บางปลาหมอ	ชัยนาท	ภาคกลาง	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+26/6/2025	Backup 4G	3588	ชุมชนวัดบ้านอ้อย	นครศรีธรรมราช	ภาคใต้	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+26/6/2025	Main Link	4926	ม.เรือนสุข 2 คลอง 9	สมุทรสาคร	ภาคกลาง	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+26/6/2025	Main Link	18931	ชุมชนหนองเป็ดน้ำ	นครราชสีมา	ภาคตะวันออกเฉียงเหนือ	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+26/6/2025	Main Link	18931	ชุมชนตะกุด(สระบุรี) (RC)	ลพบุรี	ภาคกลาง	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+26/6/2025	Main Link	13077	อ่อนนุช 66 จุด 2 (BS)	น่าน	ภาคเหนือ	Link Up/Down	modem rogue	ทำการปลดสาย modem ที่มีปัญหาออก																	
+26/6/2025	Main Link	14998	คำชะอี	เชียงใหม่	ภาคเหนือ	Link Up/Down	ค่า Power ไม่ดี	ตรวจสอบค่า Power ปกติ																	
+26/6/2025	Backup 4G	11145	วังกรด	สมุทรปราการ	ภาคกลาง	Link Up/Down	Link up	Link up no up-down																	
+26/6/2025	Backup 4G	9770	FRตลาดเทพมงคล 2	นครสวรรค์	ภาคกลาง	Link Up/Down	ค่า Power ไม่ดี	ตรวจสอบค่า Power ปกติ																	
+26/6/2025	Backup 4G	13367	ชุมชนบางลึก	พิษณุโลก	ภาคกลาง	Link Up/Down	Link up	กำลังตรวจสอบ																	
+26/6/2025	Backup 4G	8134	นรราชอุทิศ	ประจวบคีรีขันธ์	ภาคตะวันตก	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+26/6/2025	Backup 4G	2365	สามร้อยยอด	ชลบุรี	ภาคตะวันออก	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+26/6/2025	Backup 4G	6991	นวรัฐ	พัทลุง	ภาคใต้	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+26/6/2025	Backup 4G	5987	ปตท. LPG พระราม 2 กม. 50	กรุงเทพมหานคร	ภาคกลาง	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+26/6/2025	Backup 4G	3189	อบต.สุเทพ	ตาก	ภาคตะวันตก	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+26/6/2025	Backup 4G	954	คฑาธรณ์	พิษณุโลก	ภาคกลาง	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+26/6/2025	Backup 4G	4173	หมู่บ้านเมืองยิ้ม	ลพบุรี	ภาคกลาง	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+27/6/2025	Main Link	10460	บ้านป่าเป้า (จ.ลำพูน)	ลำพูน	ภาคเหนือ	Link Up/Down	Router Cisco819 เสีย	Change to Router huawei AR																	
+27/6/2025	Main Link	1637	ริเวอร์ปาร์ค	ปทุมธานี	ภาคกลาง	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+27/6/2025	Main Link	13730	ซอยธรรมศิริ (บางนา กม.25) (BS)	กรุงเทพมหานคร	ภาคกลาง	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+27/6/2025	Main Link	14496	แยกน้ำอ่าง	กรุงเทพมหานคร	ภาคกลาง	Link Up/Down	Link up	กำลังตรวจสอบ																	
+27/6/2025	Main Link	16047	Hop Inn บางนา	กรุงเทพมหานคร	ภาคกลาง	Link Up/Down	Link up	กำลังตรวจสอบ																	
+27/6/2025	Backup 4G	6815	ปตท.ท่าไม้	สมุทรปราการ	ภาคกลาง	Link Up/Down	Link up	กำลังตรวจสอบ																	
+27/6/2025	Backup 4G	16002	PS พฤกษาวิลล์ 99 เพชรเกษม 93(อ้อมน้อย)	บึงกาฬ	ภาคตะวันออกเฉียงเหนือ	Link Up/Down	Link up	กำลังตรวจสอบ																	
+27/6/2025	Backup 4G	16862	PTTOR ลับแล (ฝายหลวง)	สระบุรี	ภาคกลาง	Link Up/Down	Link up	กำลังตรวจสอบ																	
+27/6/2025	Backup 4G	12003	ปตท.แม่ปะ	ราชบุรี	ภาคตะวันตก	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+27/6/2025	Backup 4G	11326	ธรรมามูล	เชียงใหม่	ภาคเหนือ	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+27/6/2025	Backup 4G	16531	ชุมชนปากนคร	สิงห์บุรี	ภาคกลาง	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+27/6/2025	Backup 4G	11155	เลียบคลองบางน้ำจืด	สมุทรสาคร	ภาคกลาง	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+27/6/2025	Backup 4G	17034	ศูนย์การแพทย์กาญจนาภิเษก โซน C	พระนครศรีอยุธยา	ภาคกลาง	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+27/6/2025	Backup 4G	11369	เมืองนารายณ์	น่าน	ภาคเหนือ	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+27/6/2025	Backup 4G	6594	อ.ปัว	เชียงใหม่	ภาคเหนือ	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+27/6/2025	Main Link	16047	Hop Inn บางนา	พระนครศรีอยุธยา	ภาคกลาง	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+27/6/2025	Main Link	2385	อารักษ์ 2	แพร่	ภาคเหนือ	Link Up/Down	Link up	Link up no up-down																	
+27/6/2025	Main Link	10749	สวนปาล์ม	กรุงเทพมหานคร	ภาคกลาง	Link Up/Down	wan gi 0  up-down วันละครั้ง	รอส่งช่างตรวจสอบ																	
+27/6/2025	Main Link	16887	ริมปิงริเวอร์ไซด์(นครสวรรค์)	ชัยนาท	ภาคกลาง	Link Up/Down	Link up	Link up no up-down																	
+27/6/2025	Main Link	15264	ทะเลแก้ว (NC)	กรุงเทพมหานคร	ภาคกลาง	Link Up/Down	Link up	Link up no up-down																	
+27/6/2025	Backup 4G	2077	ปตท.ปราณบุรีการค้า	สุราษฎร์ธานี	ภาคใต้	Link Up/Down	Link up	Link up no up-down																	
+27/6/2025	Backup 4G	4365	ปตท.สุรศักดิ์ออยล์	ราชบุรี	ภาคตะวันตก	Link Up/Down	Link up	Link up no up-down																	
+27/6/2025	Backup 4G	16253	แยกเขาชัยสน	สุราษฎร์ธานี	ภาคใต้	Link Up/Down	กำลังตรวจสอบ	รอพิจารณาเปลี่ยนอุปกรณ์																	
+27/6/2025	Backup 4G	15994	ซอยโรงเหล็ก จุด 2	ราชบุรี	ภาคตะวันตก	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+27/6/2025	Backup 4G	3400	ปตท.เกษมราษฎร์	สมุทรปราการ	ภาคกลาง	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+27/6/2025	Backup 4G	16517	นาโบสถ์	นครสวรรค์	ภาคกลาง	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+27/6/2025	Backup 4G	3030	ม.นเรศวร (ตลาดเมืองทอง )	สมุทรสาคร	ภาคกลาง	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+27/6/2025	Backup 4G	8148	ปตท.พัฒนานิคม	สระบุรี	ภาคกลาง	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+27/6/2025	Backup 4G	614	โพธาราม	ชลบุรี	ภาคตะวันออก	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+27/6/2025	Backup 4G	6213	ถนนบรมไตรโลกนารถ	นครศรีธรรมราช	ภาคใต้	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+30/6/2025	Main Link	13959	Belle Park (BW)	กรุงเทพมหานคร	ภาคกลาง	Link Up/Down	Link up	Link up no up-down																	
+30/6/2025	Main Link	4018	ประดู่ 7	สุพรรณบุรี	ภาคกลาง	Link Up/Down	กำลังตรวจสอบ	Link up no up-down																	
+30/6/2025	Main Link	16593	ปรีดีพนมยงค์ 41	พิษณุโลก	ภาคกลาง	Link Up/Down	กำลังตรวจสอบ	Link up no up-down																	
+30/6/2025	Main Link	5552	บ้านคลองสวน	สุโขทัย	ภาคกลาง	Link Up/Down	Link up	Link up no up-down																	
+30/6/2025	Main Link	6706	เซกา	สมุทรปราการ	ภาคกลาง	Link Up/Down	Link up	Link up no up-down																	
+30/6/2025	Backup 4G	4525	ปตท.หินกอง 2	ภูเก็ต	ภาคใต้	Link Up/Down	Link up	Link up no up-down																	
+30/6/2025	Backup 4G	16002	PS พฤกษาวิลล์ 99 เพชรเกษม 93(อ้อมน้อย)	สระแก้ว	ภาคตะวันออก	Link Up/Down	Link up	Link up no up-down																	
+30/6/2025	Backup 4G	8239	ปตท.ดอนทราย (ปากท่อ)	นครปฐม	ภาคกลาง	Link Up/Down	Link up	Link up no up-down																	
+30/6/2025	Backup 4G	11708	บ้านทุ่งหมื่นน้อย (อ.สันทราย)	เชียงใหม่	ภาคเหนือ	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+30/6/2025	Backup 4G	17124	พรหมมาสตร์	จันทบุรี	ภาคตะวันออก	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+30/6/2025	Backup 4G	851	คลองครุ	นครปฐม	ภาคกลาง	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+30/6/2025	Backup 4G	9716	บางซ้าย	อุดรธานี	ภาคตะวันออกเฉียงเหนือ	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+30/6/2025	Backup 4G	14209	PTTOR สุขุมปัว (NC)	กรุงเทพมหานคร	ภาคกลาง	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+30/6/2025	Backup 4G	5147	ตลาดแม่กวง	เชียงใหม่	ภาคเหนือ	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+30/6/2025	Backup 4G	16695	พลัส คอนโด อยุธยาพาร์ค	ลำพูน	ภาคเหนือ	Link Up/Down	Link up	Link up no up-down																	
+30/6/2025	Main Link	10644	ปตท.แยกเวียงทอง	นครปฐม	ภาคกลาง	Link Up/Down	Link up	Link up no up-down																	
+30/6/2025	Main Link	10858	อิสรภาพ 31	ชุมพร	ภาคใต้	Link Up/Down	Link up	Link up no up-down																	
+30/6/2025	Main Link	9992	เทศบาล 4 ชัยนาท	พระนครศรีอยุธยา	ภาคกลาง	Link Up/Down	Link up	Link up no up-down																	
+30/6/2025	Main Link	11145	วังกรด	สมุทรสาคร	ภาคกลาง	Link Up/Down	Link up	Link up no up-down																	
+30/6/2025	Main Link	14085	Silom Terrace	สุโขทัย	ภาคกลาง	Link Up/Down	กำลังตรวจสอบ	รอส่งช่างตรวจสอบ																	
+30/6/2025	Backup 4G	16922	ลีเล็ด (ท่าฉาง)	สุราษฎร์ธานี	ภาคใต้	Link Up/Down	Router ONE540 เสีย	Change to Router huawei AR																	
+30/6/2025	Backup 4G	13135	สุขเจริญ	พิษณุโลก	ภาคกลาง	Link Up/Down	Link up	Link up no up-down																	
+30/6/2025	Backup 4G	4835	จอมบึง 2	พิษณุโลก	ภาคกลาง	Link Up/Down	Link up	Link up no up-down																	
+30/6/2025	Backup 4G	16668	PTTOR ชัยบุรี	นครสวรรค์	ภาคกลาง	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+30/6/2025	Backup 4G	6815	ปตท.ท่าไม้	กรุงเทพมหานคร	ภาคกลาง	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+30/6/2025	Backup 4G	8239	ปตท.ดอนทราย (ปากท่อ)	กรุงเทพมหานคร	ภาคกลาง	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+30/6/2025	Backup 4G	17054	PTTOR เขาวัง (ราชบุรี)	กรุงเทพมหานคร	ภาคกลาง	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+30/6/2025	Backup 4G	773	ตลาดอัศวิน	เลย	ภาคตะวันออกเฉียงเหนือ	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+30/6/2025	Backup 4G	5664	แยกนวมินทร์นครสวรรค์	กำแพงเพชร	ภาคกลาง	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+30/6/2025	Backup 4G	17012	วัดยกกระบัตร	นครสวรรค์	ภาคกลาง	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+1/7/2025	Main Link	6300	ทับกวาง	นครราชสีมา	ภาคตะวันออกเฉียงเหนือ	Link Up/Down	Link up	Link up no up-down																	
+1/7/2025	Main Link	16081	PTTOR ทุ่งขวาง-พนัส (ทล.349)	สมุทรสาคร	ภาคกลาง	Link Up/Down	Link up	Link up no up-down																	
+1/7/2025	Main Link	16740	บ้านไสม่วง	กำแพงเพชร	ภาคกลาง	Link Up/Down	Link up	Link up no up-down																	
+1/7/2025	Main Link	11685	พีรพงษ์ (BW)	อุดรธานี	ภาคตะวันออกเฉียงเหนือ	Link Up/Down	Link up	Link up no up-down																	
+1/7/2025	Main Link	13098	ถนนข้าวปลูก (RC)	สระบุรี	ภาคกลาง	Link Up/Down	Link up	Link up no up-down																	
+1/7/2025	Backup 4G	13367	ชุมชนบางลึก	ลพบุรี	ภาคกลาง	Link Up/Down	Link up	Link up no up-down																	
+1/7/2025	Backup 4G	6636	ท่าทอง	เชียงใหม่	ภาคเหนือ	Link Up/Down	Link up	Link up no up-down																	
+1/7/2025	Backup 4G	8484	ปตท.คีรีมาศ	สุพรรณบุรี	ภาคกลาง	Link Up/Down	Link up	Link up no up-down																	
+1/7/2025	Backup 4G	9188	สี่แยกบ่อนไก่ จุด 2	กรุงเทพมหานคร	ภาคกลาง	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+1/7/2025	Backup 4G	15903	ซอยบางเทา 2	ขอนแก่น	ภาคตะวันออกเฉียงเหนือ	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+1/7/2025	Backup 4G	16502	รพ.วัฒนานคร ( สระแก้ว )	กรุงเทพมหานคร	ภาคกลาง	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+1/7/2025	Backup 4G	7085	ชุมชนดอนหวาย	กรุงเทพมหานคร	ภาคกลาง	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+1/7/2025	Backup 4G	1157	ต้นพยอม	กรุงเทพมหานคร	ภาคกลาง	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+1/7/2025	Backup 4G	16759	PTTOR หนองอ้อ จันทบุรี	เชียงใหม่	ภาคเหนือ	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+1/7/2025	Backup 4G	1692	พุทธมณฑลสาย 7	นครปฐม	ภาคกลาง	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+2/7/2025	Main Link	3921	ตลาดโพธิ์สุวรรณ	ตาก	ภาคตะวันตก	Link Up/Down	Link up	Link up no up-down																	
+2/7/2025	Main Link	10567	พลมานีย์ จุด 4	สิงห์บุรี	ภาคกลาง	Link Up/Down	Link up	Link up no up-down																	
+2/7/2025	Main Link	11351	บ้านสบเปิง (อ.แม่แตง)	กาญจนบุรี	ภาคตะวันตก	Link Up/Down	Link up	Link up no up-down																	
+2/7/2025	Main Link	5057	คำชะอี	สิงห์บุรี	ภาคกลาง	Link Up/Down	Link up	Link up no up-down																	
+2/7/2025	Main Link	5282	บ้านเหมืองง่า	นนทบุรี	ภาคกลาง	Link Up/Down	Link up	Link up no up-down																	
+2/7/2025	Backup 4G	15947	ปากทางโรงเรียนการบินกำแพงแสน	เชียงใหม่	ภาคเหนือ	Link Up/Down	Link up	Link up no up-down																	
+2/7/2025	Backup 4G	12003	ปตท.แม่ปะ	นครปฐม	ภาคกลาง	Link Up/Down	Link up	Link up no up-down																	
+2/7/2025	Backup 4G	15850	ร้านค้าสวัสดิการค่ายเขตอุดมศักดิ์ (SN)	นนทบุรี	ภาคกลาง	Link Up/Down	Link up	Link up no up-down																	
+2/7/2025	Backup 4G	7331	ปตท.พหลโยธินวังน้อย กม.78	กรุงเทพมหานคร	ภาคกลาง	Link Up/Down	Link up	Link up no up-down																	
+2/7/2025	Backup 4G	1692	พุทธมณฑลสาย 7	นครปฐม	ภาคกลาง	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+2/7/2025	Backup 4G	13044	ชุมชนนาดี (BW)	ชลบุรี	ภาคตะวันออก	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+2/7/2025	Backup 4G	16634	รพ.สุโขทัย	นครราชสีมา	ภาคตะวันออกเฉียงเหนือ	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+2/7/2025	Backup 4G	1012	ชุมชนวัดพระญาติ	อุดรธานี	ภาคตะวันออกเฉียงเหนือ	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+2/7/2025	Backup 4G	9864	พิษณุโลกพลาซ่า	สมุทรสาคร	ภาคกลาง	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+2/7/2025	Backup 4G	10087	ปตท.เลี่ยงเมืองพิษณุโลก	เชียงใหม่	ภาคเหนือ	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+2/7/2025	Main Link	13886	ปตท.หนองบัว (NC)	อ่างทอง	ภาคกลาง	Link Up/Down	Link up	Link up no up-down																	
+2/7/2025	Main Link	12108	พุทธมณฑลสาย 2 ซอย 2 (BW)	นครปฐม	ภาคกลาง	Link Up/Down	Link up	Link up no up-down																	
+2/7/2025	Main Link	4312	ซอยนวลจิตร จุด 2	กาญจนบุรี	ภาคตะวันตก	Link Up/Down	Link up	Link up no up-down																	
+2/7/2025	Main Link	4728	นภาจรัส	สงขลา	ภาคใต้	Link Up/Down	ค่า Power ไม่ดี	ตรวจสอบค่า Power ปกติ																	
+2/7/2025	Main Link	14222	PTTOR ด่านซ้าย (NE)	นครปฐม	ภาคกลาง	Link Up/Down	Link up	Link up no up-down																	
+2/7/2025	Backup 4G	11801	ปตท.หนองปลิงกำแพงเพชร (RC)	พิษณุโลก	ภาคกลาง	Link Up/Down	Link up	Link up no up-down																	
+2/7/2025	Backup 4G	3225	ธรรมจักร	ขอนแก่น	ภาคตะวันออกเฉียงเหนือ	Link Up/Down	Link up	Link up no up-down																	
+2/7/2025	Backup 4G	11833	Cargill Factory Market	กรุงเทพมหานคร	ภาคกลาง	Link Up/Down	Link up	Link up no up-down																	
+2/7/2025	Backup 4G	10299	DC มหาชัย	กรุงเทพมหานคร	ภาคกลาง	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+2/7/2025	Backup 4G	10342	ราชดำเนิน (กำแพงเพชร)	ชลบุรี	ภาคตะวันออก	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+2/7/2025	Backup 4G	1230	สันติสุข	ลพบุรี	ภาคกลาง	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+2/7/2025	Backup 4G	3144	ปตท.หินกอง	พิษณุโลก	ภาคกลาง	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+2/7/2025	Backup 4G	15621	PTTOR ศูนย์สงครามพิเศษ (RC)(ปตท.100%)	เชียงใหม่	ภาคเหนือ	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+2/7/2025	Backup 4G	5094	FR.บ้านศรีดอนไชย 1	เชียงใหม่	ภาคเหนือ	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+2/7/2025	Backup 4G	16252	ตลาดรุ่งโรจน์เจริญทรัพย์	เชียงใหม่	ภาคเหนือ	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+3/7/2025	Main Link	992	ตลาดสำเหร่	นครปฐม	ภาคกลาง	Link Up/Down	Link up	Link up no up-down																	
+3/7/2025	Main Link	15414	ธาราคอนโดเทล 3 (NE)	ลำปาง	ภาคเหนือ	Link Up/Down	Link up	Link up no up-down																	
+3/7/2025	Main Link	8572	รพ.กรุงเทพ(พลาซ่า)	ประจวบคีรีขันธ์	ภาคตะวันตก	Link Up/Down	Link up	Link up no up-down																	
+3/7/2025	Main Link	13419	GAYSORN OFFICE TOWER (BW)	นครศรีธรรมราช	ภาคใต้	Link Up/Down	Link up	Link up no up-down																	
+3/7/2025	Main Link	338	ตลาดพลู	เชียงใหม่	ภาคเหนือ	Link Up/Down	Link up	Link up no up-down																	
+3/7/2025	Backup 4G	5840	ปตท.น้ำแพร่	นครราชสีมา	ภาคตะวันออกเฉียงเหนือ	Link Up/Down	Link up	Link up no up-down																	
+3/7/2025	Backup 4G	17054	PTTOR เขาวัง (ราชบุรี)	กรุงเทพมหานคร	ภาคกลาง	Link Up/Down	Link up	Link up no up-down																	
+3/7/2025	Backup 4G	16016	ศรีประจันต์	หนองคาย	ภาคตะวันออกเฉียงเหนือ	Link Up/Down	Link up	Link up no up-down																	
+3/7/2025	Backup 4G	5000	ตากพิทยาคม	เชียงใหม่	ภาคเหนือ	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+3/7/2025	Backup 4G	5583	ตลาดปลาชมภูพงศ์	กรุงเทพมหานคร	ภาคกลาง	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+3/7/2025	Backup 4G	7695	ไปรษณีย์กาญจน์	เพชรบุรี	ภาคตะวันตก	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+3/7/2025	Backup 4G	2159	บขส.สิงห์บุรี	สิงห์บุรี	ภาคกลาง	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+3/7/2025	Backup 4G	6927	ซอยประทานพร	นครนายก	ภาคกลาง	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+3/7/2025	Backup 4G	9307	บ้านหนองโค้ง	ชลบุรี	ภาคตะวันออก	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+3/7/2025	Backup 4G	4172	ปตท.นครชัยศรี	ราชบุรี	ภาคตะวันตก	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+3/7/2025	Main Link	6186	ม.พฤกษาวิลล์ 63-พระราม 5	เชียงราย	ภาคเหนือ	Link Up/Down	Link up	Link up no up-down																	
+3/7/2025	Main Link	8145	อาคารสมเด็จพระเทพรัตน์(ร.พ.รามาฯ)	สมุทรสงคราม	ภาคกลาง	Link Up/Down	Link up	Link up no up-down																	
+3/7/2025	Main Link	13428	พัฒนานิคมสาย 4 (เขาสูง) (RC)	ระยอง	ภาคตะวันออก	Link Up/Down	Link up	Link up no up-down																	
+3/7/2025	Main Link	16045	PTTOR แยกบ้านบึง	พระนครศรีอยุธยา	ภาคกลาง	Link Up/Down	Link up	Link up no up-down																	
+3/7/2025	Main Link	17058	ขนงพระใต้	กำแพงเพชร	ภาคกลาง	Link Up/Down	Link up	Link up no up-down																	
+3/7/2025	Backup 4G	8358	หลังอุดรทิพย์	เชียงใหม่	ภาคเหนือ	Link Up/Down	Link up	Link up no up-down																	
+3/7/2025	Backup 4G	11174	ท่าไม้	ปราจีนบุรี	ภาคตะวันออก	Link Up/Down	Link up	Link up no up-down																	
+3/7/2025	Backup 4G	3804	ปตทหนองผึ้ง	กรุงเทพมหานคร	ภาคกลาง	Link Up/Down	Link up	Link up no up-down																	
+3/7/2025	Backup 4G	16267	องครักษ์ อ่างทอง	กรุงเทพมหานคร	ภาคกลาง	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+3/7/2025	Backup 4G	16765	ชุมชนบ้านเจริญสุข(กำแพงแสน)	ชลบุรี	ภาคตะวันออก	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+3/7/2025	Backup 4G	544	ริเวอร์แคว	สระบุรี	ภาคกลาง	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+3/7/2025	Backup 4G	16774	PTTOR เขาเขียว (สิงหนคร)	ลพบุรี	ภาคกลาง	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+3/7/2025	Backup 4G	16650	เปโตร-ดงเกตุ	สิงห์บุรี	ภาคกลาง	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+3/7/2025	Backup 4G	17034	ศูนย์การแพทย์กาญจนาภิเษก โซน C	สุพรรณบุรี	ภาคกลาง	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+3/7/2025	Backup 4G	5072	พระองค์ดำ(พิษณุโลก)	พิษณุโลก	ภาคกลาง	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+4/7/2025	Main Link	4673	อดุลยาราม	แม่ฮ่องสอน	ภาคเหนือ	Link Up/Down	Link up	Link up no up-down																	
+4/7/2025	Main Link	11107	สุขุมวิท 66 (BS)	สุราษฎร์ธานี	ภาคใต้	Link Up/Down	Link up	Link up no up-down																	
+4/7/2025	Main Link	11942	SV พระราม 3	สิงห์บุรี	ภาคกลาง	Link Up/Down	Link up	Link up no up-down																	
+4/7/2025	Main Link	11470	คลองตำหรุ 5 (ชลบุรี)	สมุทรสาคร	ภาคกลาง	Link Up/Down	Link up	Link up no up-down																	
+4/7/2025	Main Link	3648	ซอยบาดาล	ราชบุรี	ภาคตะวันตก	Link Up/Down	Link up	Link up no up-down																	
+4/7/2025	Backup 4G	5566	ปทุมทอง 2	กรุงเทพมหานคร	ภาคกลาง	Link Up/Down	Link up	Link up no up-down																	
+4/7/2025	Backup 4G	8629	หน้าโรงพยาบาลมหาราช (เชียงใหม่)	เชียงใหม่	ภาคเหนือ	Link Up/Down	Link up	Link up no up-down																	
+4/7/2025	Backup 4G	11399	แยกสนามบิน2	นนทบุรี	ภาคกลาง	Link Up/Down	Link up	Link up no up-down																	
+4/7/2025	Backup 4G	13952	FR.โรงพยาบาลราชเวช (จ.เชียงใหม่)	กรุงเทพมหานคร	ภาคกลาง	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+4/7/2025	Backup 4G	16751	สามพราน ซอย 2	ระนอง	ภาคใต้	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+4/7/2025	Backup 4G	9528	แม่ทะ	ภูเก็ต	ภาคใต้	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+4/7/2025	Backup 4G	7016	ปตท.บางสะพาน	พังงา	ภาคใต้	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+4/7/2025	Backup 4G	2838	ชุมชนท่าศาลา	สงขลา	ภาคใต้	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+4/7/2025	Backup 4G	8083	หน้าโรงพยาบาลสารภี	สุราษฎร์ธานี	ภาคใต้	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+4/7/2025	Backup 4G	11954	ตลาดคลังมาร์เช่	ระยอง	ภาคตะวันออก	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+4/7/2025	Main Link	4674	เจริญกรุง 70	เพชรบูรณ์	ภาคกลาง	Link Up/Down	Link up	Link up no up-down																	
+4/7/2025	Main Link	14000	ไนท์หนองคาย (NE)	สงขลา	ภาคใต้	Link Up/Down	Link up	Link up no up-down																	
+4/7/2025	Main Link	7349	ถนนสามล้าน	สุราษฎร์ธานี	ภาคใต้	Link Up/Down	Link up	Link up no up-down																	
+4/7/2025	Main Link	11966	RSU Tower	เชียงราย	ภาคเหนือ	Link Up/Down	Link up	Link up no up-down																	
+4/7/2025	Main Link	14133	ชายหาดหนองแจง(ชะอำใต้) (SN)	เชียงใหม่	ภาคเหนือ	Link Up/Down	Link up	Link up no up-down																	
+4/7/2025	Backup 4G	8629	หน้าโรงพยาบาลมหาราช (เชียงใหม่)	กรุงเทพมหานคร	ภาคกลาง	Link Up/Down	Link up	Link up no up-down																	
+4/7/2025	Backup 4G	11352	อัมพวัน (สิงห์บุรี)	ปราจีนบุรี	ภาคตะวันออก	Link Up/Down	Link up	Link up no up-down																	
+4/7/2025	Backup 4G	3928	ปตท.นครนายก	ขอนแก่น	ภาคตะวันออกเฉียงเหนือ	Link Up/Down	Link up	Link up no up-down																	
+4/7/2025	Backup 4G	6888	ปตท.ฟ้าใส	ร้อยเอ็ด	ภาคตะวันออกเฉียงเหนือ	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+4/7/2025	Backup 4G	6884	ปตท.ดอนตะโก	พิษณุโลก	ภาคกลาง	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+4/7/2025	Backup 4G	7143	แม่สาย 4	นครราชสีมา	ภาคตะวันออกเฉียงเหนือ	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+4/7/2025	Backup 4G	11859	บางน้อยใน	ตาก	ภาคตะวันตก	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+4/7/2025	Backup 4G	6237	ห้วยโป่ง ซอย12	สุรินทร์	ภาคตะวันออกเฉียงเหนือ	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+4/7/2025	Backup 4G	2156	ประตูชัย (อยุธยา)	เพชรบุรี	ภาคตะวันตก	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+4/7/2025	Backup 4G	8246	ปตท.ทรงธรรม	สมุทรสาคร	ภาคกลาง	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+7/7/2025	Main Link	4211	ปตท.แม่ริม	สมุทรสาคร	ภาคกลาง	Link Up/Down	wan gi0 up down บ่อย	รอส่งช่างตรวจสอบ																	
+7/7/2025	Main Link	1403	โรงพยาบาลเจ้าพระยาอภัยภูเบศร์	เชียงใหม่	ภาคเหนือ	Link Up/Down	Link up	Link up no up-down																	
+7/7/2025	Main Link	4157	บางปอซอย 4	กรุงเทพมหานคร	ภาคกลาง	Link Up/Down	Link up	Link up no up-down																	
+7/7/2025	Main Link	5372	พุทธมณฑลสาย 1 ซอย 4	ลพบุรี	ภาคกลาง	Link Up/Down	Link up	Link up no up-down																	
+7/7/2025	Main Link	6485	พรประภานิมิตร ซอย 22	กรุงเทพมหานคร	ภาคกลาง	Link Up/Down	Link up	Link up no up-down																	
+7/7/2025	Backup 4G	15820	มวกเหล็ก-เขาใหญ่	ระยอง	ภาคตะวันออก	Link Up/Down	Link up	Link up no up-down																	
+7/7/2025	Backup 4G	11039	แยกนารายณ์ฮิลล์	กรุงเทพมหานคร	ภาคกลาง	Link Up/Down	Link up	Link up no up-down																	
+7/7/2025	Backup 4G	11765	บางงา (RC)	นครปฐม	ภาคกลาง	Link Up/Down	Link up	Link up no up-down																	
+7/7/2025	Backup 4G	5123	หน้า รพ.เดิมบางนางบวช	ภูเก็ต	ภาคใต้	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+7/7/2025	Backup 4G	1845	จ่านกร้อง	เพชรบุรี	ภาคตะวันตก	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+7/7/2025	Backup 4G	10443	ปตท.สุขุมแม่สะเรียง	นครนายก	ภาคกลาง	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+7/7/2025	Backup 4G	3599	ปตท.ธรรมบูชา	เพชรบุรี	ภาคตะวันตก	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+7/7/2025	Backup 4G	16144	รพ.อินทร์บุรี	ภูเก็ต	ภาคใต้	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+7/7/2025	Backup 4G	11694	ปตท.ถนนเศรษฐกิจ กม.16	เชียงราย	ภาคเหนือ	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+7/7/2025	Backup 4G	7683	ปตท.หลักเมืองมั่นคง	สมุทรสาคร	ภาคกลาง	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+7/7/2025	Main Link	94	จรัญสนิทวงศ์ 37	กรุงเทพมหานคร	ภาคกลาง	Link Up/Down	Link up	Link up no up-down																	
+7/7/2025	Main Link	10492	ปตท.ไชยปราการ	สมุทรปราการ	ภาคกลาง	Link Up/Down	Link up	Link up no up-down																	
+7/7/2025	Main Link	13141	LPN วิลล์ นครอินทร์-ริเวอร์วิว	เพชรบุรี	ภาคตะวันตก	Link Up/Down	wan gi0 up down บ่อย	รอส่งช่างตรวจสอบ																	
+7/7/2025	Main Link	2512	ราม 51/2	กรุงเทพมหานคร	ภาคกลาง	Link Up/Down	wan gi0 up down บ่อย	รอส่งช่างตรวจสอบ																	
+7/7/2025	Main Link	11504	บ้านในวก (RS)	ชลบุรี	ภาคตะวันออก	Link Up/Down	Link up	Link up no up-down																	
+7/7/2025	Backup 4G	6857	ถนนประชาอุทิศภูเก็ต	สุพรรณบุรี	ภาคกลาง	Link Up/Down	Link up	Link up no up-down																	
+7/7/2025	Backup 4G	16597	รพ.ตะกั่วป่า	หนองคาย	ภาคตะวันออกเฉียงเหนือ	Link Up/Down	Link up	Link up no up-down																	
+7/7/2025	Backup 4G	16970	ตำบลคูหาใต้	กรุงเทพมหานคร	ภาคกลาง	Link Up/Down	Link up	Link up no up-down																	
+7/7/2025	Backup 4G	8562	ตลาดหน้าศูนย์สุราษฎร์	เชียงใหม่	ภาคเหนือ	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+7/7/2025	Backup 4G	6349	หาดพลา	สมุทรสงคราม	ภาคกลาง	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+7/7/2025	Backup 4G	16817	นาชุม	ลำปาง	ภาคเหนือ	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+7/7/2025	Backup 4G	5231	กาญจนวนิช ซอย11	พิษณุโลก	ภาคกลาง	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+7/7/2025	Backup 4G	9111	เอกทวีคูณ	เชียงใหม่	ภาคเหนือ	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+7/7/2025	Backup 4G	16987	ถนนสนามบินเก่า	เชียงใหม่	ภาคเหนือ	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+7/7/2025	Backup 4G	11656	บ้านเชิงดอย (ถ.สุเทพ)	สมุทรสาคร	ภาคกลาง	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+8/7/2025	Main Link	13652	โรงพยาบาลมหาราชนครเชียงใหม่ (S เชียงใหม่)	สมุทรสงคราม	ภาคกลาง	Link Up/Down	wan gi0 up down บ่อย	รอส่งช่างตรวจสอบ																	
+8/7/2025	Main Link	9214	ม.จรัญวิลล่า 1	เชียงใหม่	ภาคเหนือ	Link Up/Down	Link up	Link up no up-down																	
+8/7/2025	Main Link	14272	บ้านโป่งไผ่ (ศรีมหาโพธิ์) (RE)	เชียงใหม่	ภาคเหนือ	Link Up/Down	Link up	Link up no up-down																	
+8/7/2025	Main Link	8341	ศิริสุข 1	ขอนแก่น	ภาคตะวันออกเฉียงเหนือ	Link Up/Down	Link up	Link up no up-down																	
+8/7/2025	Main Link	3028	ปตท.ปัทมานนท์	ร้อยเอ็ด	ภาคตะวันออกเฉียงเหนือ	Link Up/Down	Link up	Link up no up-down																	
+8/7/2025	Backup 4G	15693	ชุมชนเต็งหนาม (RN)	พิษณุโลก	ภาคกลาง	Link Up/Down	Link up	Link up no up-down																	
+8/7/2025	Backup 4G	8523	ปตท.สระบุรี-ห้วยบง	นครราชสีมา	ภาคตะวันออกเฉียงเหนือ	Link Up/Down	Link up	Link up no up-down																	
+8/7/2025	Backup 4G	16409	เมืองตาก	ตาก	ภาคตะวันตก	Link Up/Down	Link up	Link up no up-down																	
+8/7/2025	Backup 4G	15711	PTTOR บ้านพลวงปราสาท	สุรินทร์	ภาคตะวันออกเฉียงเหนือ	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+8/7/2025	Backup 4G	6584	ตลาดวังหม้อแกง	เพชรบุรี	ภาคตะวันตก	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+8/7/2025	Backup 4G	7469	บางน้ำจืด	สมุทรสาคร	ภาคกลาง	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+8/7/2025	Backup 4G	16254	พระราม 2 กม. 34 (มหาชัย)	สมุทรสาคร	ภาคกลาง	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+8/7/2025	Backup 4G	11066	แม่ริม4(บ้านท้องฝาย)	เชียงใหม่	ภาคเหนือ	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+8/7/2025	Backup 4G	11102	พีเรสซิเด้นซ์	กรุงเทพมหานคร	ภาคกลาง	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+8/7/2025	Backup 4G	11319	ตลาดเอราวัณ (ลพบุรี)	ลพบุรี	ภาคกลาง	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+8/7/2025	Main Link	6767	ตลาดกระทิงแดง	กรุงเทพมหานคร	ภาคกลาง	Link Up/Down	Link up	Link up no up-down																	
+8/7/2025	Main Link	9365	ปตท.ตลาดตะพง (ระยอง)	ระยอง	ภาคตะวันออก	Link Up/Down	Link up	Link up no up-down																	
+8/7/2025	Main Link	4211	ปตท.แม่ริม	เชียงใหม่	ภาคเหนือ	Link Up/Down	wan gi0 up down บ่อย	รอส่งช่างตรวจสอบ																	
+8/7/2025	Main Link	10025	LPN อ่อนนุช 46	กรุงเทพมหานคร	ภาคกลาง	Link Up/Down	Link up	Link up no up-down																	
+8/7/2025	Main Link	13040	สบาย ศาลายา (BW)	นครปฐม	ภาคกลาง	Link Up/Down	Link up	Link up no up-down																	
+8/7/2025	Backup 4G	4822	ชุมชนเกาะสิเหร่	ภูเก็ต	ภาคใต้	Link Up/Down	Link up	Link up no up-down																	
+8/7/2025	Backup 4G	2820	Booth อาชีวะเพชรบุรี	เพชรบุรี	ภาคตะวันตก	Link Up/Down	Link up	Link up no up-down																	
+8/7/2025	Backup 4G	10486	ปตท.คลอง29 นครนายก	นครนายก	ภาคกลาง	Link Up/Down	Link up	Link up no up-down																	
+8/7/2025	Backup 4G	3467	โรงเรียนเบญจมะ ( เพชรบุรี )	เพชรบุรี	ภาคตะวันตก	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+8/7/2025	Backup 4G	9641	หมู่บ้านฉลองสุข	ภูเก็ต	ภาคใต้	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+8/7/2025	Backup 4G	9722	สันป่าก๊อ	เชียงราย	ภาคเหนือ	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+8/7/2025	Backup 4G	7608	ปตท.สหกรณ์การเกษตรกระทุ่มแบน	สมุทรสาคร	ภาคกลาง	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+8/7/2025	Backup 4G	8112	สาย 2 อเวนิว	กรุงเทพมหานคร	ภาคกลาง	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+8/7/2025	Backup 4G	3677	หมู่บ้านเปรมฤทัยเลคพาร์ค	สมุทรปราการ	ภาคกลาง	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+8/7/2025	Backup 4G	16718	หนองแจง	เพชรบุรี	ภาคตะวันตก	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+9/7/2025	Main Link	3835	อ่อนนุช 46	กรุงเทพมหานคร	ภาคกลาง	Link Up/Down	Link up	Link up no up-down																	
+9/7/2025	Main Link	4685	ปตท. หนองไผ่แก้ว	ชลบุรี	ภาคตะวันออก	Link Up/Down	Link up	Link up no up-down																	
+9/7/2025	Main Link	6075	ปตท.บางปลาม้า(สุพรรณบุรี)	สุพรรณบุรี	ภาคกลาง	Link Up/Down	Link up	Link up no up-down																	
+9/7/2025	Main Link	8923	ปตท.จอมเสด็จหนองคาย	หนองคาย	ภาคตะวันออกเฉียงเหนือ	Link Up/Down	Link up	Link up no up-down																	
+9/7/2025	Main Link	14483	จรัญฯ 75 แยก 3	กรุงเทพมหานคร	ภาคกลาง	Link Up/Down	Link up	Link up no up-down																	
+9/7/2025	Backup 4G	5165	ลอยเคราะห์ 3	เชียงใหม่	ภาคเหนือ	Link Up/Down	Link up	Link up no up-down																	
+9/7/2025	Backup 4G	10573	ปตท.แม่กลอง-อัมพวา	สมุทรสงคราม	ภาคกลาง	Link Up/Down	Link up	Link up no up-down																	
+9/7/2025	Backup 4G	16408	ชุมชนปันง้าว	ลำปาง	ภาคเหนือ	Link Up/Down	Link up	Link up no up-down																	
+9/7/2025	Backup 4G	4656	ปตท.สิงหวัฒน์	พิษณุโลก	ภาคกลาง	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+9/7/2025	Backup 4G	11084	ปตท.แยกสันกลาง	เชียงใหม่	ภาคเหนือ	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+9/7/2025	Backup 4G	13278	ปตท.สุขุมแม่ริม (RN)	เชียงใหม่	ภาคเหนือ	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+9/7/2025	Backup 4G	5749	อ่างน้ำบ้านแพ้ว	สมุทรสาคร	ภาคกลาง	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+9/7/2025	Backup 4G	10119	ปตท.บ้านปรก(สมุทรสงคราม)	สมุทรสงคราม	ภาคกลาง	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+9/7/2025	Backup 4G	14155	หมื่นด้ามพร้าคต 2	เชียงใหม่	ภาคเหนือ	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+9/7/2025	Backup 4G	1749	สันกำแพง	เชียงใหม่	ภาคเหนือ	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+9/7/2025	Main Link	5840	ปตท.น้ำแพร่	แพร่	ภาคเหนือ	Link Up/Down	Link up	Link up no up-down																	
+9/7/2025	Main Link	8962	FR.ถนนโพธาราม (เชียงใหม่)	เชียงใหม่	ภาคเหนือ	Link Up/Down	Link up	Link up no up-down																	
+9/7/2025	Main Link	13141	LPN วิลล์ นครอินทร์-ริเวอร์วิว	เชียงใหม่	ภาคเหนือ	Link Up/Down	wan gi0 up down บ่อย	รอส่งช่างตรวจสอบ																	
+9/7/2025	Main Link	22619	ตลาดนัดหน้าอนามัย บ้านพลับพลา(จันทบุรี)	เชียงใหม่	ภาคเหนือ	Link Up/Down	Link up	Link up no up-down																	
+9/7/2025	Main Link	6790	บุญนครคอนโด	แพร่	ภาคเหนือ	Link Up/Down	Link up	Link up no up-down																	
+9/7/2025	Backup 4G	15518	บ้านสวนรื่นรมย์(ห้วยยอด)	หนองคาย	ภาคตะวันออกเฉียงเหนือ	Link Up/Down	Link up	Link up no up-down																	
+9/7/2025	Backup 4G	16963	บ้านใหม่(อ.สันกำแพง)	นนทบุรี	ภาคกลาง	Link Up/Down	ค่า Power ไม่ดี	ตรวจสอบค่า Power ปกติ																	
+9/7/2025	Backup 4G	11827	บ้านใหม่ (RC)	สมุทรปราการ	ภาคกลาง	Link Up/Down	Link up	Link up no up-down																	
+9/7/2025	Backup 4G	7741	อรุณรังษี(หนองคาย)	สุพรรณบุรี	ภาคกลาง	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+9/7/2025	Backup 4G	6025	ศักดิเดชซอย 5	สมุทรสาคร	ภาคกลาง	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+9/7/2025	Backup 4G	16298	ชุมชนท่าล้อ	พระนครศรีอยุธยา	ภาคกลาง	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+9/7/2025	Backup 4G	15678	PTTOR หมู่บ้านอนุรักษ์ควายไทย (RC)	กาญจนบุรี	ภาคกลาง	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+9/7/2025	Backup 4G	10956	ตลาดดอนไก่ดี	จันทบุรี	ภาคตะวันออก	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+9/7/2025	Backup 4G	13277	ปตท.นาจักร 2 (RN)	ตรัง	ภาคใต้	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+9/7/2025	Backup 4G	11084	ปตท.แยกสันกลาง	ภูเก็ต	ภาคใต้	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+11/7/2025	Main Link	13614	เทพกุญชร 32 จุด 2 (BE)	ปทุมธานี	กรุงเทพและปริมณฑล	Link Up/Down	Link up	Link up no up-down																	
+11/7/2025	Main Link	11600	สินธิวาธีวาธีประตู 2	ปทุมธานี	กรุงเทพและปริมณฑล	Link Up/Down	Link up	Link up no up-down																	
+11/7/2025	Main Link	16695	พลัส คอนโด อยุธยาพาร์ค	พระนครศรีอยุธยา	ภาคกลาง	Link Up/Down	Link up	Link up no up-down																	
+11/7/2025	Main Link	553	Home Pro พระราม 2	กรุงเทพมหานคร	กรุงเทพและปริมณฑล	Link Up/Down	Link up	Link up no up-down																	
+11/7/2025	Main Link	11868	เอื้ออาทรแพรกษา 2 (BS)	สมุทรปราการ	กรุงเทพและปริมณฑล	Link Up/Down	Link up	Link up no up-down																	
+11/7/2025	Backup 4G	14617	สาขา ทุ่งทองใต้(ทุ่งกวาด)	ตรัง	ภาคใต้	Link Up/Down	Link up	Link up no up-down																	
+11/7/2025	Backup 4G	5037	ห้วยทับทัน 2 (S อุบล)	อุบลราชธานี	ภาคตะวันออกเฉียงเหนือ	Link Up/Down	Link up	Link up no up-down																	
+11/7/2025	Backup 4G	3849	หนองป่าครั่ง	เชียงใหม่	ภาคเหนือ	Link Up/Down	กำลังตรวจสอบ	รอส่งช่างตรวจสอบ																	
+11/7/2025	Backup 4G	16597	รพ.ตะกั่วป่า	พังงา	ภาคใต้	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+11/7/2025	Backup 4G	2589	ศูนย์การค้ากาญจน์	กาญจนบุรี	ภาคตะวันตก	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+11/7/2025	Backup 4G	1845	จ่านกร้อง	พิษณุโลก	ภาคเหนือ	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+11/7/2025	Backup 4G	9090	บ้านท่ารั้ว	เชียงใหม่	ภาคเหนือ	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+11/7/2025	Backup 4G	16431	Wat Bot Highway	พิษณุโลก	ภาคเหนือ	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+11/7/2025	Backup 4G	8484	ปตท.คีรีมาศ	สุโขทัย	ภาคเหนือ	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+11/7/2025	Backup 4G	16298	ชุมชนท่าล้อ	กาญจนบุรี	ภาคตะวันตก	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+11/7/2025	Main Link	10312	บางปลา ซ.43	สมุทรสาคร	ภาคกลาง	Link Up/Down	Link up	Link up no up-down																	
+11/7/2025	Main Link	18525	บางนาตราด กม.22 FMC	สมุทรปราการ	กรุงเทพและปริมณฑล	Link Up/Down	Link up	Link up no up-down																	
+11/7/2025	Main Link	13237	หน้า ม.อุบล 4 (S อุบล)	อุบลราชธานี	ภาคตะวันออกเฉียงเหนือ	Link Up/Down	Link up	Link up no up-down																	
+11/7/2025	Main Link	16887	ริมปิงริเวอร์ไซด์(นครสวรรค์)	นครสวรรค์	ภาคเหนือ	Link Up/Down	Link up	Link up no up-down																	
+11/7/2025	Main Link	18519	บ้านทับปุด	พังงา	ภาคใต้	Link Up/Down	Link up	Link up no up-down																	
+11/7/2025	Backup 4G	2365	สามร้อยยอด	ประจวบคีรีขันธ์	ภาคตะวันตก	Link Up/Down	Link up	Link up no up-down																	
+11/7/2025	Backup 4G	3887	ปากน้ำปราณบุรีจุด 2	ประจวบคีรีขันธ์	ภาคตะวันตก	Link Up/Down	Link up	Link up no up-down																	
+11/7/2025	Backup 4G	6356	ไทยยูเนี่ยน	สมุทรสาคร	ภาคกลาง	Link Up/Down	Link up	Link up no up-down																	
+11/7/2025	Backup 4G	10486	ปตท.คลอง29 นครนายก	นครนายก	ภาคกลาง	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+11/7/2025	Backup 4G	11827	บ้านใหม่ (RC)	พระนครศรีอยุธยา	ภาคกลาง	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+11/7/2025	Backup 4G	13368	เจริญสุข (หัวหิน)	ประจวบคีรีขันธ์	ภาคตะวันตก	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+11/7/2025	Backup 4G	11273	ปตท.ปากโทก	พิษณุโลก	ภาคเหนือ	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+11/7/2025	Backup 4G	4046	ปตท.สหกรณ์หนองโพ	ราชบุรี	ภาคตะวันตก	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+11/7/2025	Backup 4G	15470	ประชาเกษม (นครนายก)	นครนายก	ภาคกลาง	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+11/7/2025	Backup 4G	16817	นาชุม	เพชรบูรณ์	ภาคเหนือ	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+14/7/2025	Main Link	13705	ห้วยบง	นครราชสีมา	ภาคตะวันออกเฉียงเหนือ	Link Up/Down	Link up	Link up no up-down																	
+14/7/2025	Main Link	13579	ร่มประดุ่	บุรีรัมย์	ภาคตะวันออกเฉียงเหนือ	Link Up/Down	Link up	Link up no up-down																	
+14/7/2025	Main Link	10205	ปตท.LPG มิตรภาพบัวขาว	กาฬสินธุ์	ภาคตะวันออกเฉียงเหนือ	Link Up/Down	Link up	Link up no up-down																	
+14/7/2025	Main Link	11019	ชะอำบีช	เพชรบุรี	ภาคตะวันตก	Link Up/Down	Link up	Link up no up-down																	
+14/7/2025	Main Link	8388	อินเดียเอ็มโพเรียม	กรุงเทพมหานคร	กรุงเทพและปริมณฑล	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+14/7/2025	Backup 4G	4365	ปตท.สุรศักดิ์ออยล์	ชลบุรี	ภาคตะวันออก	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+14/7/2025	Backup 4G	10994	รวมโชคมอลล์	เชียงใหม่	ภาคเหนือ	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+14/7/2025	Backup 4G	4046	ปตท.สหกรณ์หนองโพ	ราชบุรี	ภาคตะวันตก	Link Up/Down	Link up	Link up no up-down																	
+14/7/2025	Backup 4G	17124	พรหมมาสตร์	สิงห์บุรี	ภาคกลาง	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+14/7/2025	Backup 4G	2589	ศูนย์การค้ากาญจน์	กาญจนบุรี	ภาคตะวันตก	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+14/7/2025	Backup 4G	5501	หน้า รพ.ศุภมิตร	สุพรรณบุรี	ภาคกลาง	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+14/7/2025	Backup 4G	16298	ชุมชนท่าล้อ	กาญจนบุรี	ภาคตะวันตก	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+14/7/2025	Backup 4G	10878	บางม่วงนครสวรรค์	นครสวรรค์	ภาคเหนือ	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+14/7/2025	Backup 4G	11746	บางขันแตก (BW)	สมุทรสงคราม	กรุงเทพและปริมณฑล	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+14/7/2025	Backup 4G	6820	ทุ่งมะขามหย่อง	พระนครศรีอยุธยา	ภาคกลาง	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+14/7/2025	Main Link	5860	เทศบาลหนองตำลึง ซ.17	ชลบุรี	ภาคตะวันออก	Link Up/Down	Link up	Link up no up-down																	
+14/7/2025	Main Link	10311	หน้าโรงพยาบาลเสนา	พระนครศรีอยุธยา	ภาคกลาง	Link Up/Down	Link up	Link up no up-down																	
+14/7/2025	Main Link	4523	คณะพยาบาล ม.พายัพ	เชียงใหม่	ภาคเหนือ	Link Up/Down	Link up	Link up no up-down																	
+14/7/2025	Main Link	1746	ชายหาดชะอำ 3	เพชรบุรี	ภาคตะวันตก	Link Up/Down	Link up	Link up no up-down																	
+14/7/2025	Main Link	3094	เทอดไท 22	กรุงเทพมหานคร	กรุงเทพและปริมณฑล	Link Up/Down	Link up	Link up no up-down																	
+14/7/2025	Backup 4G	11726	ปตท.มิตรภาพยางใหญ่พัฒนา (RN)	นครราชสีมา	ภาคตะวันออกเฉียงเหนือ	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+14/7/2025	Backup 4G	16687	บ้านบวกครกน้อย (ต.หนองป่าครั่ง)	เชียงใหม่	ภาคเหนือ	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+14/7/2025	Backup 4G	16017	หน้าสถานีรถไฟสุไหงโกลก	นราธิวาส	ภาคใต้	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+14/7/2025	Backup 4G	12003	ปตท.แม่ปะ	ตาก	ภาคตะวันตก	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+14/7/2025	Backup 4G	3223	หนองขาว	กาญจนบุรี	ภาคตะวันตก	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+14/7/2025	Backup 4G	10916	คลองยิงเสือ	สมุทรสาคร	ภาคกลาง	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+14/7/2025	Backup 4G	10284	ปตท.ท่าวุ้ง(ลพบุรี)	ลพบุรี	ภาคกลาง	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+14/7/2025	Backup 4G	5285	บุญเรืองฤทธิ์ 1	เชียงใหม่	ภาคเหนือ	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+14/7/2025	Backup 4G	10517	ป่าหวาย	ลพบุรี	ภาคกลาง	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+14/7/2025	Backup 4G	16708	วังตะเคียน	ปราจีนบุรี	ภาคตะวันออก	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+15/7/2025	Main Link	14144	สุขุมวิท-พัทยา 25(มารีวิทย์)	ชลบุรี	ภาคตะวันออก	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+15/7/2025	Main Link	11796	หน้าสถานีขนส่งกบินทร์บุรี (RE)	ปราจีนบุรี	ภาคตะวันออก	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+15/7/2025	Main Link	15284	Unio เสรีไทย (BE)	กรุงเทพมหานคร	กรุงเทพและปริมณฑล	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+15/7/2025	Main Link	11027	จรัญฯ 13/5	กรุงเทพมหานคร	กรุงเทพและปริมณฑล	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+15/7/2025	Main Link	11600	น้ำพองนอกจุด 2	ขอนแก่น	ภาคตะวันออกเฉียงเหนือ	Link Up/Down	Link up	Link up no up-down																	
+15/7/2025	Backup 4G	17007	ตำบลท่ามิหรำ	พัทลุง	ภาคใต้	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+15/7/2025	Backup 4G	6991	นวรัฐ	เชียงใหม่	ภาคเหนือ	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+15/7/2025	Backup 4G	15869	ถนนตรังคภูมิ	ตรัง	ภาคใต้	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+15/7/2025	Backup 4G	17009	ชุมชนหนองขาว	กาญจนบุรี	ภาคตะวันตก	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+15/7/2025	Backup 4G	16446	ตลาดโพธิ์พระยา	สุพรรณบุรี	ภาคกลาง	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+15/7/2025	Backup 4G	8287	เอเชีย-บ้านกรด	พระนครศรีอยุธยา	ภาคกลาง	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+15/7/2025	Backup 4G	2365	สามร้อยยอด	ประจวบคีรีขันธ์	ภาคตะวันตก	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+15/7/2025	Backup 4G	10142	ปตท.กองบิน41	เชียงใหม่	ภาคเหนือ	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+15/7/2025	Backup 4G	17034	ศูนย์การแพทย์กาญจนาภิเษก โซน C	นครปฐม	ภาคกลาง	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+15/7/2025	Backup 4G	8333	หลัง มรภ.กำแพงเพชร	กำแพงเพชร	ภาคเหนือ	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+15/7/2025	Main Link	16723	สามบัณฑิต	พระนครศรีอยุธยา	กลาง	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+15/7/2025	Main Link	16720	รามอินทรา 39 แยก 3	กรุงเทพมหานคร	กลาง	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+15/7/2025	Main Link	11031	ไชยวาน			Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+15/7/2025	Main Link	14264	PTTOR ทล.315 พนัสฯ-ชลบุรี	ชลบุรี	ตะวันออก	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+15/7/2025	Main Link	5418	วิภาวดี 20	กรุงเทพมหานคร	กลาง	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+15/7/2025	Backup 4G	13510	เนเชอร์รัล ป่าตอง (RS)	ภูเก็ต	ใต้	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+15/7/2025	Backup 4G	16155	PTTOR บ้านใหม่หนองไทรอรัญฯ	สระแก้ว	ตะวันออก	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+15/7/2025	Backup 4G	4493	โรงพยาบาลนราธิวาสราชนครินทร์	นราธิวาส	ใต้	Link Up/Down	Link up	Link up no up-down																	
+15/7/2025	Backup 4G	8236	ปตท.ม.นเรศวร	พิษณุโลก	เหนือ	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+15/7/2025	Backup 4G	3370	ผังเมือง 4 ซอย 7	กรุงเทพมหานคร	กลาง	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+15/7/2025	Backup 4G	5086	พีพี มาร์เก็ต	สมุทรปราการ	กลาง	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+15/7/2025	Backup 4G	6256	หน้า รพ.โพธิ์ทอง	อ่างทอง	กลาง	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+15/7/2025	Backup 4G	4459	ซุปเปอร์ไฮเวย์(คำเที่ยง)	เชียงใหม่	เหนือ	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+15/7/2025	Backup 4G	14201	บ้านยวม (อ.สารภี) (S เชียงใหม่)	เชียงใหม่	เหนือ	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+15/7/2025	Backup 4G	4611	สินธิวาธีวาธีประตู 2			Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+15/7/2025	Backup 4G	8333	หลัง มรภ.กำแพงเพชร	กำแพงเพชร	เหนือ	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+16/7/2025	Main Link	11048	หน้าวัดเชียงมั่น	เชียงใหม่	เหนือ	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+16/7/2025	Main Link	8899	อ.แม่ทา	ลำพูน	เหนือ	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+16/7/2025	Main Link	384	เจ้าพระยา 17			Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+16/7/2025	Main Link	1963	วุฒากาศ 42	กรุงเทพมหานคร	กลาง	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+16/7/2025	Main Link	15471	ตลาดเจมาเช่(ปากช่อง)	นครราชสีมา	ตะวันออกเฉียงเหนือ	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+16/7/2025	Backup 4G	6560	หน้าสนามกอล์ฟลานนา	เชียงใหม่	เหนือ	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+16/7/2025	Backup 4G	7384	ม.จอมทอง	เชียงใหม่	เหนือ	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+16/7/2025	Backup 4G	2315	ปตท.ห้วยไคร้	เชียงราย	เหนือ	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+16/7/2025	Backup 4G	4940	เอกชัยแม่กลอง	สมุทรสงคราม	กลาง	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+16/7/2025	Backup 4G	6995	ชุมชนเก็ตโฮ่	ภูเก็ต	ใต้	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+16/7/2025	Backup 4G	5292	ตลาดขวัญใจแม่ค้า (บ้านไร่ชาวเหนือ)	ราชบุรี	ตะวันตก	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+16/7/2025	Backup 4G	11281	ปตท.LPG ทรงคะนอง	นครปฐม	กลาง	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+16/7/2025	Backup 4G	10738	บ้านโจ้ (วงแหวนรอบ 2)	เชียงใหม่	เหนือ	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+16/7/2025	Backup 4G	10458	หลังตลาดหางดง	เชียงใหม่	เหนือ	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+16/7/2025	Backup 4G	5639	ถนนหมื่นหาญ	สุพรรณบุรี	กลาง	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+16/7/2025	Main Link	15167	ซอยศรีสุริโยทัย 1 (ลพบุรี) (NC)	ลพบุรี	กลาง	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+16/7/2025	Main Link	11570	หน้าอำเภอวิหารแดง	สระบุรี	กลาง	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+16/7/2025	Main Link	15187	PTTOR ขาณุุวรลักษบุรี	กำแพงเพชร	เหนือ	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+16/7/2025	Main Link	11351	บ้านสบเปิง (อ.แม่แตง)	เชียงใหม่	เหนือ	Link Up/Down	Alarm Power	Alarm Power Clear																	
+16/7/2025	Main Link	16791	ชุมชนอิตาเลี่ยนไทย(วิหารแดง)	สระบุรี	กลาง	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+16/7/2025	Backup 4G	16929	หน้า ร.พ.เคียนซา	สุราษฎร์ธานี	ใต้	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+16/7/2025	Backup 4G	15653	แสนตอ (SN)			Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+16/7/2025	Backup 4G	16516	ตลาดอุดมสวัสดิ์	เชียงราย	เหนือ	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+16/7/2025	Backup 4G	6873	ปตท.บ้านถ้ำ	พะเยา	เหนือ	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+16/7/2025	Backup 4G	5558	ปตท.ควนศรี	สุราษฎร์ธานี	ใต้	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+16/7/2025	Backup 4G	11146	ตลาดน้ำดุก	ปราจีนบุรี	ตะวันออก	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+16/7/2025	Backup 4G	5937	ดอนจั่น 3	เชียงใหม่	เหนือ	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+16/7/2025	Backup 4G	3760	วิชิตสงคราม	ภูเก็ต	ใต้	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+16/7/2025	Backup 4G	7569	หน้า รพ.ดอยสะเก็ด	เชียงใหม่	เหนือ	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+16/7/2025	Backup 4G	16431	Wat Bot Highway	พิษณุโลก	เหนือ	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+17/7/2025	Main Link	2205	สะเดียง	เพชรบูรณ์	เหนือ	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+17/7/2025	Main Link	11388	บ้านท่าแดง(หนองไผ่)	เพชรบูรณ์	เหนือ	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+17/7/2025	Main Link	11761	บางไผ่ แปดริ้ว (RE)	ฉะเชิงเทรา	ตะวันออก	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+17/7/2025	Main Link	13633	รังสิตคลอง 4 จุด 2 (BE)	ปทุมธานี	กลาง	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+17/7/2025	Main Link	17395	คำบง			Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+17/7/2025	Backup 4G	10298	หนองศาลา			Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+17/7/2025	Backup 4G	6127	บางจะเกร็ง 3	สมุทรสงคราม	กลาง	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+17/7/2025	Backup 4G	16231	ตลาดวังกะพี้	อุตรดิตถ์	เหนือ	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+17/7/2025	Backup 4G	17102	ตลาดสดศรีรุ่งเรืองพะเยา	พะเยา	เหนือ	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+17/7/2025	Backup 4G	16454	อบต.บางเตย			Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+17/7/2025	Backup 4G	16453	ตลาดจงเจริญ (ดอนตูม)	นครปฐม	กลาง	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+17/7/2025	Backup 4G	11281	ปตท.LPG ทรงคะนอง	นครปฐม	กลาง	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+17/7/2025	Backup 4G	2299	หนองประทีป			Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+17/7/2025	Backup 4G	8605	หน้าสถานีรถไฟกาญจนบุรี	กาญจนบุรี	ตะวันตก	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+17/7/2025	Backup 4G	10737	FR.เชียงใหม่บิสสิเนสพาร์ค 2	เชียงใหม่	เหนือ	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+17/7/2025	Main Link	11479	ศรีมงคล(บึงสามพัน)	เพชรบูรณ์	เหนือ	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+17/7/2025	Main Link	11849	ตะเคียนเลื่อน	นครสวรรค์	เหนือ	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+17/7/2025	Main Link	11806	แม่สอดวิลล่า (RC)	ตาก	เหนือ	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+17/7/2025	Main Link	13644	อุดมสุข ซ.26 (BS)	กรุงเทพมหานคร	กลาง	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+17/7/2025	Main Link	16763	บ้านป่าบอนต่ำ	พัทลุง	ใต้	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+17/7/2025	Backup 4G	9608	ตลาดนครา	นนทบุรี	กลาง	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+17/7/2025	Backup 4G	16227	หน้าเอื้ออาทรพะเยา	พะเยา	เหนือ	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+17/7/2025	Backup 4G	10952	แม่กื๊ดหลวง			Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+17/7/2025	Backup 4G	15995	เขาปิหลาย			Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+17/7/2025	Backup 4G	7698	แยกปากท่อ	ราชบุรี	ตะวันตก	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+17/7/2025	Backup 4G	10758	Booth โรงพยาบาลกรุงเทพ (เชียงใหม่)	เชียงใหม่	เหนือ	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+17/7/2025	Backup 4G	16718	หนองแจง			Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+17/7/2025	Backup 4G	11273	ปตท.ปากโทก	พิษณุโลก	เหนือ	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+17/7/2025	Backup 4G	6832	อาชีวสระบุรี	สระบุรี	กลาง	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+17/7/2025	Backup 4G	2315	ปตท.ห้วยไคร้	เชียงราย	เหนือ	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+18/7/2025	Main Link	6534	อีสเทิร์นซีบอร์ด (ขาออก)	ชลบุรี	ภาคตะวันออก	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+18/7/2025	Main Link	11771	ปตท.ถ.ข้าวหลาม-บางแสน(ชลบุรี)	ชลบุรี	ภาคตะวันออก	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+18/7/2025	Main Link	5889	เดอะบาซ่าส์(ชลบุรี)	ชลบุรี	ภาคตะวันออก	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+18/7/2025	Main Link	9322	รามคำแหง 52/2 จุด 2	กรุงเทพมหานคร	ภาคกลาง	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+18/7/2025	Main Link	14258	PTTOR กรอกยายชา (ระยอง) (Compact)	ระยอง	ภาคตะวันออก	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+18/7/2025	Backup 4G	16532	PTTOR จิงโจ้ทุ่งตะโก	ชุมพร	ภาคใต้	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+18/7/2025	Backup 4G	23168	เบลลินี่ Bangna Tower	สมุทรปราการ	ภาคกลาง	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+18/7/2025	Backup 4G	15928	ตลาดนัดหนองเผาถ่าน (SN)			Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+18/7/2025	Backup 4G	11839	ขนส่งอาเขต 4 (จ.เชียงใหม่)	เชียงใหม่	ภาคเหนือ	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+18/7/2025	Backup 4G	6285	วงเวียนอัมพวา	สมุทรสงคราม	ภาคกลาง	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+18/7/2025	Backup 4G	16636	แม่ตาว	ตาก	ภาคเหนือ	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+18/7/2025	Backup 4G	3810	กาดขะจาว	ลำพูน	ภาคเหนือ	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+18/7/2025	Backup 4G	4777	ประตูชัย 2			Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+18/7/2025	Backup 4G	16077	หน้าโรงพยาบาลเกาะคา	ลำปาง	ภาคเหนือ	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+18/7/2025	Backup 4G	10177	บ้านสันคะยอม	เชียงราย	ภาคเหนือ	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+18/7/2025	Main Link	6534	อีสเทิร์นซีบอร์ด (ขาออก)	ชลบุรี	ภาคตะวันออก	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+18/7/2025	Main Link	11771	ปตท.ถ.ข้าวหลาม-บางแสน(ชลบุรี)	ชลบุรี	ภาคตะวันออก	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+18/7/2025	Main Link	5889	เดอะบาซ่าส์(ชลบุรี)	ชลบุรี	ภาคตะวันออก	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+18/7/2025	Main Link	9322	รามคำแหง 52/2 จุด 2	กรุงเทพมหานคร	ภาคกลาง	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+18/7/2025	Main Link	14258	PTTOR กรอกยายชา (ระยอง) (Compact)	ระยอง	ภาคตะวันออก	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+18/7/2025	Main Link	10193	ซอยสุขุมวิท 48	กรุงเทพมหานคร	ภาคกลาง	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+18/7/2025	Main Link	2883	แม่หลวน	ภูเก็ต	ภาคใต้	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+18/7/2025	Main Link	7597	ถนนมหิดล	เชียงใหม่	ภาคเหนือ	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+18/7/2025	Main Link	4838	ไชยานุภาพ	พิษณุโลก	ภาคเหนือ	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+18/7/2025	Main Link	6617	สุขุมวิท-ตึกน้ำ	ชลบุรี	ภาคตะวันออก	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+18/7/2025	Backup 4G	6239	หนองขลี	สุราษฎร์ธานี	ภาคใต้	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+18/7/2025	Backup 4G	16525	ร้านค้าสวัสดิการโรงพยาบาลชัยบาดาล	ลพบุรี	ภาคกลาง	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+18/7/2025	Backup 4G	3887	ปากน้ำปราณบุรีจุด 2	ประจวบคีรีขันธ์	ภาคตะวันตก	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+18/7/2025	Backup 4G	16325	บ้านป่าลาน(อ.สันทราย)	เชียงใหม่	ภาคเหนือ	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+18/7/2025	Backup 4G	16295	ข้างรพ.ท่าศาลา	นครศรีธรรมราช	ภาคใต้	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+18/7/2025	Backup 4G	11281	ปตท.LPG ทรงคะนอง	นครปฐม	ภาคกลาง	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+18/7/2025	Backup 4G	5635	สวนเขลางค์นคร	ลำปาง	ภาคเหนือ	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+18/7/2025	Backup 4G	10435	ปตท.ท่างิ้ว	นครศรีธรรมราช	ภาคใต้	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+18/7/2025	Backup 4G	2458	ภูเก็ตวิลล่า	ภูเก็ต	ภาคใต้	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+18/7/2025	Backup 4G	16013	ถนนกัลปพฤกษ์ มข.	ขอนแก่น	ภาคตะวันออกเฉียงเหนือ	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+21/7/2025	Main Link	6062	ปตท.ทับคล้อ	พิจิตร	ภาคเหนือ	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+21/7/2025	Main Link	14252	บ้านทุ่งหลุก (อ.เชียงดาว) (S เชียงใหม่)	เชียงใหม่	ภาคเหนือ	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+21/7/2025	Main Link	8325	ไอโมบายสเตเดียม	บุรีรัมย์	ภาคตะวันออกเฉียงเหนือ	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+21/7/2025	Main Link	11151	นครไตรตรึงษ์	กำแพงเพชร	ภาคเหนือ	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+21/7/2025	Main Link	1256	หมอชิต 2 1	กรุงเทพมหานคร	ภาคกลาง	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+21/7/2025	Backup 4G	16532	PTTOR จิงโจ้ทุ่งตะโก	ชุมพร	ภาคใต้	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+21/7/2025	Backup 4G	9090	บ้านท่ารั้ว	เชียงใหม่	ภาคเหนือ	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+21/7/2025	Backup 4G	16929	หน้า ร.พ.เคียนซา	สุราษฎร์ธานี	ภาคใต้	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+21/7/2025	Backup 4G	4046	ปตท.สหกรณ์หนองโพ	ราชบุรี	ภาคตะวันตก	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+21/7/2025	Backup 4G	23168	เบลลินี่ Bangna Tower	สมุทรปราการ	ภาคกลาง	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+21/7/2025	Backup 4G	11839	ขนส่งอาเขต 4 (จ.เชียงใหม่)	เชียงใหม่	ภาคเหนือ	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+21/7/2025	Backup 4G	11277	คลองมะเดื่อ 9	สมุทรสาคร	ภาคกลาง	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+21/7/2025	Backup 4G	6127	บางจะเกร็ง 3	สมุทรสงคราม	ภาคกลาง	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+21/7/2025	Backup 4G	17012	วัดยกกระบัตร	สมุทรสาคร	ภาคกลาง	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+21/7/2025	Backup 4G	3760	วิชิตสงคราม	ภูเก็ต	ภาคใต้	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+21/7/2025	Main Link	11281	ปตท.LPG ทรงคะนอง	นครปฐม	ภาคกลาง	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+21/7/2025	Main Link	8093	ตลาดน้ำลัด	ราชบุรี	ภาคตะวันตก	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+21/7/2025	Main Link	12039	ตลาดนิ่มซีเส็ง(ต.ฟ้าฮ่าม)	เชียงใหม่	ภาคเหนือ	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+21/7/2025	Main Link	9179	ประชาสันติสุข (นางรอง)	บุรีรัมย์	ภาคตะวันออกเฉียงเหนือ	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+21/7/2025	Main Link	14518	ถนนดิสมาร์ค (BW)	กรุงเทพมหานคร	ภาคกลาง	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+21/7/2025	Backup 4G	7268	ปตท.ฮอด	เชียงใหม่	ภาคเหนือ	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+21/7/2025	Backup 4G	15799	ซอยพระบารมี 3	ภูเก็ต	ภาคใต้	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+21/7/2025	Backup 4G	10916	คลองยิงเสือ	สมุทรสาคร	ภาคกลาง	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+21/7/2025	Backup 4G	13073	ซอยวัดพระใหญ่	ชลบุรี	ภาคตะวันออก	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+21/7/2025	Backup 4G	5406	FR.ถนนสุเทพ (ประตูวิศวะฯ)	เชียงใหม่	ภาคเหนือ	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+21/7/2025	Backup 4G	10394	ปตท.สุขุมแม่แตง	เชียงใหม่	ภาคเหนือ	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+21/7/2025	Backup 4G	1626	แม่มาลัย	เชียงใหม่	ภาคเหนือ	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+21/7/2025	Backup 4G	14246	ปากทางหมู่บ้านเกษตร (กำแพงแสน)	นครปฐม	ภาคกลาง	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+21/7/2025	Backup 4G	14636	กลางซอยเฉลิมพระเกียรติ 48 (BS)	กรุงเทพมหานคร	ภาคกลาง	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ																	
+21/7/2025	Backup 4G	11755	ปตท.มาบอำมฤต (RS)	ชุมพร	ภาคใต้	Link Up/Down	กำลังตรวจสอบ	กำลังตรวจสอบ`;																	
+try {																									
+const lines = csvData.trim().split('\n');																									
+const headers = lines[0].split('\t').map(h => h.trim());																									
+const data = lines.slice(1).map(line => {																									
+const values = line.split('\t');																									
+let obj = {};																									
+headers.forEach((header, index) => {																									
+let value = values[index] ? values[index].trim() : '';																									
+if (header === 'ประเภท Link (Link Type)') {																									
+value = value.replace('(FTTX) (FTTX)', '(FTTX)');																									
+}																									
+obj[header] = value;																									
+});																									
+return obj;																									
+});																									
+this.state.allEventsData = data;																									
+} catch (error) {																									
+console.error("Failed to parse CSV data:", error);																									
+alert("ไม่สามารถแปลงข้อมูล CSV ได้");																									
+this.state.allEventsData = [];																									
+}																									
+},																									
+																									
+// --- Data Processing ---																									
+processData() {																									
+const data = this.state.allEventsData;																									
+																									
+const createDetailedSummary = (data, columnName) => {																									
+const counts = data.reduce((acc, d) => {																									
+const item = d[columnName];																									
+if (item && item.trim() !== '' && item.trim() !== '-' && item.trim().toLowerCase() !== 'n/a') {																									
+acc[item] = (acc[item] || 0) + 1;																									
+}																									
+return acc;																									
+}, {});																									
+																									
+const totalCount = Object.values(counts).reduce((sum, count) => sum + count, 0);																									
+																									
+if (totalCount === 0) {																									
+return [];																									
+}																									
+																									
+return Object.entries(counts)																									
+.map(([name, count]) => ({																									
+name,																									
+count,																									
+percentage: Math.round((count / totalCount) * 100)																									
+}))																									
+.sort((a, b) => b.count - a.count);																									
+};																									
+																									
+const symptomDetails = createDetailedSummary(data, 'อาการที่พบ');																									
+const causeDetails = createDetailedSummary(data, 'สาเหตุ');																									
+const solutionDetails = createDetailedSummary(data, 'วิธีการแก้ไข');																									
+																									
+const linkTypeCounts = data.reduce((acc, d) => {																									
+const type = d['ประเภท Link (Link Type)'];																									
+if (type) acc[type] = (acc[type] || 0) + 1;																									
+return acc;																									
+}, {});																									
+																									
+const storeIssueCounts = data.reduce((acc, d) => {																									
+const storeId = d['รหัสร้าน (Store ID)'];																									
+const storeName = d['ชื่อร้าน (Store Name)'];																									
+if (storeId) {																									
+if (!acc[storeId]) {																									
+acc[storeId] = { name: storeName, count: 0 };																									
+}																									
+acc[storeId].count++;																									
+}																									
+return acc;																									
+}, {});																									
+																									
+const topStoreIssues = Object.entries(storeIssueCounts)																									
+.map(([id, data]) => ({ id, name: data.name, count: data.count }))																									
+.sort((a, b) => b.count - a.count)																									
+.slice(0, 10);																									
+																									
+const regionCounts = data.reduce((acc, d) => {																									
+const region = d['ภาค (Region)'];																									
+if (region) acc[region] = (acc[region] || 0) + 1;																									
+return acc;																									
+}, {});																									
+																									
+const provinceCounts = data.reduce((acc, d) => {																									
+const province = d['จังหวัด (Province)'];																									
+if (province) acc[province] = (acc[province] || 0) + 1;																									
+return acc;																									
+}, {});																									
+const topProvinces = Object.entries(provinceCounts).map(([name, value]) => ({ name, value })).sort((a, b) => b.value - a.value).slice(0, 10);																									
+																									
+const eventsByDate = data.reduce((acc, d) => {																									
+const date = d['วันที่ (Date)'];																									
+if (!date) return acc;																									
+if (!acc[date]) {																									
+acc[date] = { main: [], backup: [] };																									
+}																									
+const eventDetail = { id: d['รหัสร้าน (Store ID)'], name: d['ชื่อร้าน (Store Name)'] };																									
+if (d['ประเภท Link (Link Type)'].includes('Main')) {																									
+acc[date].main.push(eventDetail);																									
+} else {																									
+acc[date].backup.push(eventDetail);																									
+}																									
+return acc;																									
+}, {});																									
+																									
+const recentEvents = Object.entries(eventsByDate).map(([date, data]) => ({ date, ...data })).sort((a,b) => {																									
+const dateA = a.date.split('/').reverse().join('-');																									
+const dateB = b.date.split('/').reverse().join('-');																									
+return new Date(dateB) - new Date(dateA);																									
+});																									
+																									
+const dateCounts = data.reduce((acc, d) => {																									
+const date = d['วันที่ (Date)'];																									
+if (date) acc[date] = (acc[date] || 0) + 1;																									
+return acc;																									
+}, {});																									
+const dateTrendData = Object.entries(dateCounts).sort((a,b) => {																									
+const dateA = a[0].split('/').reverse().join('-');																									
+const dateB = b[0].split('/').reverse().join('-');																									
+return new Date(dateA) - new Date(dateB);																									
+});																									
+																									
+																									
+return {																									
+totalIssues: data.length,																									
+linkTypeCounts,																									
+topStoreIssues,																									
+regionCounts,																									
+topProvinces,																									
+recentEvents,																									
+dateTrendData,																									
+symptomDetails,																									
+causeDetails,																									
+solutionDetails																									
+};																									
+},																									
+																									
+// --- Rendering Functions ---																									
+render() {																									
+const data = this.processData();																									
+this.renderProblemSummary(data);																									
+this.renderKPIs(data);																									
+this.renderCharts(data);																									
+this.renderTopIssuesList(data);																									
+this.renderRecentEvents(data);																									
+this.renderAttentionTable();																									
+lucide.createIcons();																									
+},																									
+																									
+renderProblemSummary(data) {																									
+const createSummaryCardHTML = (title, icon, color, details) => {																									
+if (details.length === 0) {																									
+return `																									
+<div class="bg-white p-6 rounded-2xl shadow-lg">																									
+<div class="flex items-center mb-2">																									
+<div class="bg-${color}-100 p-3 rounded-full mr-4"><i data-lucide="${icon}" class="w-6 h-6 text-${color}-600"></i></div>																									
+<div>																									
+<p class="text-sm text-gray-500 font-medium">${title}</p>																									
+<p class="text-lg font-bold text-gray-800">ไม่มีข้อมูล</p>																									
+</div>																									
+</div>																									
+</div>																									
+`;																									
+}																									
+																									
+let detailsHTML = details.map(item => `																									
+<div class="mt-2">																									
+<div class="flex justify-between mb-1">																									
+<span class="text-sm font-medium text-gray-700 truncate" title="${item.name}">${item.name}</span>																									
+<span class="text-sm font-medium text-gray-700">${item.percentage}%</span>																									
+</div>																									
+<div class="w-full bg-gray-200 rounded-full h-2.5">																									
+<div class="bg-${color}-400 h-2.5 rounded-full" style="width: ${item.percentage}%"></div>																									
+</div>																									
+</div>																									
+`).join('');																									
+																									
+return `																									
+<div class="bg-white p-6 rounded-2xl shadow-lg">																									
+<div class="flex items-center mb-2">																									
+<div class="bg-${color}-100 p-3 rounded-full mr-4"><i data-lucide="${icon}" class="w-6 h-6 text-${color}-600"></i></div>																									
+<div><p class="text-lg font-semibold text-gray-800">${title}</p></div>																									
+</div>																									
+<div class="mt-4 max-h-48 overflow-y-auto pr-2">																									
+${detailsHTML}																									
+</div>																									
+</div>																									
+`;																									
+};																									
+																									
+const container = document.getElementById('problem-summary-section');																									
+container.innerHTML = `																									
+<div class="grid grid-cols-1 md:grid-cols-3 gap-6">																									
+${createSummaryCardHTML('อาการที่พบ', 'alert-triangle', 'yellow', data.symptomDetails)}																									
+${createSummaryCardHTML('สาเหตุ', 'wrench', 'red', data.causeDetails)}																									
+${createSummaryCardHTML('วิธีการแก้ไข', 'shield-check', 'green', data.solutionDetails)}																									
+</div>																									
+`;																									
+},																									
+																									
+renderKPIs(data) {																									
+const container = document.getElementById('kpi-container');																									
+const regionCounts = data.regionCounts;																									
+const mostProblematicRegion = Object.keys(regionCounts).length > 0 ? Object.keys(regionCounts).reduce((a, b) => regionCounts[a] > regionCounts[b] ? a : b, 'N/A') : 'N/A';																									
+																									
+container.innerHTML = `																									
+<div class="bg-white p-6 rounded-2xl shadow-lg" data-tooltip="จำนวนเหตุการณ์ Up/Down ทั้งหมดที่บันทึก">																									
+<div class="flex items-center"><div class="p-3 rounded-xl mr-4 bg-red-500"><i data-lucide="alert-circle" class="h-6 w-6 text-white"></i></div><div><p class="text-sm text-gray-500 font-medium">รวมทุกเหตุการณ์</p><p class="text-2xl font-bold text-gray-800">${data.totalIssues}</p></div></div>																									
+</div>																									
+<div class="bg-white p-6 rounded-2xl shadow-lg" data-tooltip="จำนวนปัญหาที่เกิดกับ Main Link">																									
+<div class="flex items-center"><div class="p-3 rounded-xl mr-4 bg-blue-500"><i data-lucide="arrow-up-circle" class="h-6 w-6 text-white"></i></div><div><p class="text-sm text-gray-500 font-medium">ปัญหา Main Link</p><p class="text-2xl font-bold text-gray-800">${data.linkTypeCounts['Main Link'] || 0}</p></div></div>																									
+</div>																									
+<div class="bg-white p-6 rounded-2xl shadow-lg" data-tooltip="จำนวนปัญหาที่เกิดกับ Backup 4G">																									
+<div class="flex items-center"><div class="p-3 rounded-xl mr-4 bg-yellow-500"><i data-lucide="arrow-down-circle" class="h-6 w-6 text-white"></i></div><div><p class="text-sm text-gray-500 font-medium">ปัญหา Backup 4G</p><p class="text-2xl font-bold text-gray-800">${data.linkTypeCounts['Backup 4G'] || 0}</p></div></div>																									
+</div>																									
+<div class="bg-white p-6 rounded-2xl shadow-lg" data-tooltip="ภาคที่พบปัญหาบ่อยที่สุด">																									
+<div class="flex items-center"><div class="p-3 rounded-xl mr-4 bg-orange-500"><i data-lucide="globe" class="h-6 w-6 text-white"></i></div><div><p class="text-sm text-gray-500 font-medium">ภาคที่เกิดปัญหาบ่อยสุด</p><p class="text-2xl font-bold text-gray-800">${mostProblematicRegion}</p></div></div>																									
+</div>																									
+`;																									
+},																									
+																									
+renderCharts(data) {																									
+const BAR_COLORS = ['#60A5FA', '#A78BFA', '#F472B6', '#FBBF24', '#34D399', '#FB923C', '#4ADE80', '#2DD4BF', '#818CF8', '#E879F9'];																									
+const PIE_COLORS = { 'Main Link': '#3B82F6', 'Backup 4G': '#F59E0B' };																									
+																									
+const textColor = '#1e293b';																									
+const gridColor = 'rgba(0, 0, 0, 0.1)';																									
+																									
+Object.values(this.state.charts).forEach(chart => chart.destroy());																									
+																									
+const sharedChartOptions = {																									
+responsive: true,																									
+maintainAspectRatio: false,																									
+plugins: {																									
+legend: { labels: { color: textColor } },																									
+title: { display: false }																									
+},																									
+scales: {																									
+y: { ticks: { color: textColor }, grid: { color: gridColor }, title: { color: textColor, display: false } },																									
+x: { ticks: { color: textColor }, grid: { color: gridColor }, title: { color: textColor, display: false } }																									
+}																									
+};																									
+																									
+this.state.charts.dateTrendChart = new Chart(document.getElementById('dateTrendChart'), {																									
+type: 'bar',																									
+data: {																									
+labels: data.dateTrendData.map(d => d[0]),																									
+datasets: [{																									
+label: 'จำนวนปัญหา',																									
+data: data.dateTrendData.map(d => d[1]),																									
+backgroundColor: '#4f46e5',																									
+}]																									
+},																									
+options: { ...sharedChartOptions, plugins: { ...sharedChartOptions.plugins, legend: { display: false } } }																									
+});																									
+																									
+this.state.charts.linkTypeChart = new Chart(document.getElementById('linkTypeChart'), {																									
+type: 'pie',																									
+data: {																									
+labels: Object.keys(data.linkTypeCounts),																									
+datasets: [{ data: Object.values(data.linkTypeCounts), backgroundColor: Object.keys(data.linkTypeCounts).map(k => PIE_COLORS[k]), borderColor: '#ffffff', borderWidth: 2 }]																									
+},																									
+options: { ...sharedChartOptions, plugins: { ...sharedChartOptions.plugins, legend: { ...sharedChartOptions.plugins.legend, position: 'bottom' } } }																									
+});																									
+																									
+this.state.charts.regionChart = new Chart(document.getElementById('regionChart'), {																									
+type: 'bar',																									
+data: {																									
+labels: Object.keys(data.regionCounts),																									
+datasets: [{ label: 'จำนวนครั้ง', data: Object.values(data.regionCounts), backgroundColor: BAR_COLORS }]																									
+},																									
+options: { ...sharedChartOptions, plugins: { ...sharedChartOptions.plugins, legend: { display: false } } }																									
+});																									
+																									
+this.state.charts.provinceChart = new Chart(document.getElementById('provinceChart'), {																									
+type: 'bar',																									
+data: {																									
+labels: data.topProvinces.map(p => p.name),																									
+datasets: [{ label: 'จำนวนครั้ง', data: data.topProvinces.map(p => p.value), backgroundColor: BAR_COLORS.slice().reverse() }]																									
+},																									
+options: {																									
+...sharedChartOptions,																									
+indexAxis: 'y',																									
+scales: { ...sharedChartOptions.scales, y: { ...sharedChartOptions.scales.y, ticks: { ...sharedChartOptions.scales.y.ticks, font: { size: 10 } } } }																									
+}																									
+});																									
+},																									
+																									
+renderTopIssuesList(data) {																									
+const container = document.getElementById('topIssuesList');																									
+if (data.topStoreIssues.length === 0) {																									
+container.innerHTML = '<p class="text-center text-gray-500">ไม่มีข้อมูล</p>';																									
+return;																									
+}																									
+const maxCount = Math.max(...data.topStoreIssues.map(d => d.count));																									
+container.innerHTML = data.topStoreIssues.map(item => `																									
+<div class="bg-gray-100 p-3 rounded-lg">																									
+<div class="flex justify-between items-center mb-2 gap-2 flex-wrap">																									
+<p class="font-bold text-sm text-gray-800 truncate pr-2 flex-1 min-w-0">${item.name} (${item.id})</p>																									
+<p class="text-sm font-semibold text-indigo-600 whitespace-nowrap flex-shrink-0">${item.count} ครั้ง</p>																									
+</div>																									
+<div class="w-full bg-gray-200 rounded-full h-2.5" aria-label="แถบแสดงจำนวนปัญหา">																									
+<div class="bg-indigo-500 h-2.5 rounded-full" style="width: ${maxCount > 0 ? (item.count / maxCount) * 100 : 0}%"></div>																									
+</div>																									
+</div>																									
+`).join('');																									
+},																									
+																									
+renderAttentionTable() {																									
+const tableBody = document.getElementById('attention-table-body');																									
+const { currentPage, itemsPerPage } = this.state.pagination;																									
+const data = this.state.allEventsData;																									
+																									
+if (data.length === 0) {																									
+tableBody.innerHTML = `<tr><td colspan="10" class="text-center py-8 text-gray-500">ไม่พบข้อมูล</td></tr>`;																									
+return;																									
+}																									
+																									
+const startIndex = (currentPage - 1) * itemsPerPage;																									
+const endIndex = startIndex + itemsPerPage;																									
+const paginatedData = data.slice(startIndex, endIndex);																									
+																									
+tableBody.innerHTML = paginatedData.map(item => `																									
+<tr class="bg-white border-b hover:bg-gray-50">																									
+<td class="px-6 py-4">${item['วันที่ (Date)'] || 'N/A'}</td>																									
+<td class="px-6 py-4">${item['รอบ (Period)'] || 'N/A'}</td>																									
+<td class="px-6 py-4">${item['ประเภท Link (Link Type)'] || 'N/A'}</td>																									
+<td class="px-6 py-4">${item['รหัสร้าน (Store ID)'] || 'N/A'}</td>																									
+<td class="px-6 py-4 font-medium text-gray-900 whitespace-nowrap">${item['ชื่อร้าน (Store Name)'] || 'N/A'}</td>																									
+<td class="px-6 py-4">${item['จังหวัด (Province)'] || 'N/A'}</td>																									
+<td class="px-6 py-4">${item['ภาค (Region)'] || 'N/A'}</td>																									
+<td class="px-6 py-4">${item['อาการที่พบ'] || 'N/A'}</td>																									
+<td class="px-6 py-4">${item['สาเหตุ'] || 'N/A'}</td>																									
+<td class="px-6 py-4">${item['วิธีการแก้ไข'] || 'N/A'}</td>																									
+</tr>																									
+`).join('');																									
+																									
+this.renderPaginationControls();																									
+},																									
+																									
+renderPaginationControls() {																									
+const { currentPage, itemsPerPage } = this.state.pagination;																									
+const totalItems = this.state.allEventsData.length;																									
+const totalPages = Math.ceil(totalItems / itemsPerPage);																									
+const container = document.getElementById('pagination-container');																									
+																									
+if (totalPages <= 1) {																									
+container.innerHTML = '';																									
+return;																									
+}																									
+																									
+let paginationHTML = '<nav aria-label="Pagination"><ul class="flex items-center -space-x-px h-8 text-sm">';																									
+																									
+paginationHTML += `<li><button id="prev-page" class="flex items-center justify-center px-3 h-8 ms-0 leading-tight text-gray-500 bg-white border border-e-0 border-gray-300 rounded-s-lg hover:bg-gray-100 hover:text-gray-700" ${currentPage === 1 ? 'disabled' : ''}>ก่อนหน้า</button></li>`;																									
+																									
+const pagesPerBlock = 5;																									
+const currentBlock = Math.ceil(currentPage / pagesPerBlock);																									
+const startPage = (currentBlock - 1) * pagesPerBlock + 1;																									
+const endPage = Math.min(startPage + pagesPerBlock - 1, totalPages);																									
+																									
+for (let i = startPage; i <= endPage; i++) {																									
+const activeClasses = 'z-10 flex items-center justify-center px-3 h-8 leading-tight text-blue-600 border border-blue-300 bg-blue-50 hover:bg-blue-100 hover:text-blue-700';																									
+const defaultClasses = 'flex items-center justify-center px-3 h-8 leading-tight text-gray-500 bg-white border border-gray-300 hover:bg-gray-100 hover:text-gray-700';																									
+paginationHTML += `<li><button data-page="${i}" class="${currentPage === i ? activeClasses : defaultClasses}">${i}</button></li>`;																									
+}																									
+																									
+paginationHTML += `<li><button id="next-page" class="flex items-center justify-center px-3 h-8 leading-tight text-gray-500 bg-white border border-gray-300 rounded-e-lg hover:bg-gray-100 hover:text-gray-700" ${currentPage === totalPages ? 'disabled' : ''}>ถัดไป</button></li>`;																									
+																									
+paginationHTML += '</ul></nav>';																									
+container.innerHTML = paginationHTML;																									
+},																									
+																									
+renderRecentEvents(data) {																									
+const container = document.getElementById('recent-events-container');																									
+if (data.recentEvents.length === 0) {																									
+container.innerHTML = '<p class="text-center text-gray-500">ไม่มีข้อมูลเหตุการณ์ล่าสุด</p>';																									
+return;																									
+}																									
+container.innerHTML = data.recentEvents.map((event, idx) => `																									
+<div class="border-b border-gray-200">																									
+<details class="group" ${idx < 3 ? 'open' : ''}>																									
+<summary class="flex justify-between items-center w-full py-3 px-1 text-left font-medium text-gray-700 hover:bg-gray-100 cursor-pointer list-none">																									
+<span>วันที่: ${event.date}</span>																									
+<i data-lucide="chevron-down" class="w-5 h-5 transition-transform group-open:rotate-180"></i>																									
+</summary>																									
+<div class="p-4 bg-gray-50 rounded-b-lg">																									
+<div class="grid grid-cols-1 md:grid-cols-2 gap-4">																									
+<div>																									
+<h4 class="font-semibold mb-2 text-indigo-600">Main Link Issues (${event.main.length})</h4>																									
+<ul class="list-disc list-inside text-sm space-y-1 text-gray-600">${event.main.length > 0 ? event.main.map(store => `<li key=${store.id}>${store.id} - ${store.name}</li>`).join('') : '<li>ไม่มี</li>'}</ul>																									
+</div>																									
+<div>																									
+<h4 class="font-semibold mb-2 text-sky-600">Backup 4G Issues (${event.backup.length})</h4>																									
+<ul class="list-disc list-inside text-sm space-y-1 text-gray-600">${event.backup.length > 0 ? event.backup.map(store => `<li key=${store.id}>${store.id} - ${store.name}</li>`).join('') : '<li>ไม่มี</li>'}</ul>																									
+</div>																									
+</div>																									
+</div>																									
+</details>																									
+</div>																									
+`).join('');																									
+},																									
+																									
+setupEventListeners() {																									
+document.getElementById('download-all-btn').addEventListener('click', () => {																									
+const data = this.state.allEventsData;																									
+if (data.length > 0) {																									
+const headers = Object.keys(data[0]);																									
+const csvRows = [headers.join(',')];																									
+data.forEach(row => {																									
+const values = headers.map(header => {																									
+let cell = row[header] === null || row[header] === undefined ? '' : String(row[header]);																									
+if (/[",\n]/.test(cell)) {																									
+cell = `"${cell.replace(/"/g, '""')}"`;																									
+}																									
+return cell;																									
+});																									
+csvRows.push(values.join(','));																									
+});																									
+const csvString = '\uFEFF' + csvRows.join('\n');																									
+const blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' });																									
+const link = document.createElement('a');																									
+const url = URL.createObjectURL(blob);																									
+link.setAttribute('href', url);																									
+link.setAttribute('download', 'all_events_data.csv');																									
+link.style.visibility = 'hidden';																									
+document.body.appendChild(link);																									
+link.click();																									
+document.body.removeChild(link);																									
+} else {																									
+alert("ไม่มีข้อมูลสำหรับดาวน์โหลด");																									
+}																									
+});																									
+document.getElementById('refresh-btn').addEventListener('click', () => this.init());																									
+																									
+document.getElementById('pagination-container').addEventListener('click', (e) => {																									
+const button = e.target.closest('button');																									
+if (!button || button.disabled) return;																									
+																									
+const page = button.dataset.page;																									
+if (page) {																									
+this.state.pagination.currentPage = parseInt(page, 10);																									
+} else if (button.id === 'prev-page') {																									
+this.state.pagination.currentPage--;																									
+} else if (button.id === 'next-page') {																									
+this.state.pagination.currentPage++;																									
+}																									
+this.renderAttentionTable();																									
+});																									
+},																									
+																									
+async init() {																									
+const loadingOverlay = document.getElementById('loading-overlay');																									
+const dashboardContainer = document.getElementById('dashboard-container');																									
+																									
+loadingOverlay.style.display = 'flex';																									
+dashboardContainer.style.opacity = 0;																									
+																									
+await this.fetchData();																									
+this.render();																									
+this.setupEventListeners();																									
+																									
+document.getElementById('last-updated').textContent = `อัปเดตล่าสุด: ${new Date().toLocaleString('th-TH', { dateStyle: 'medium', timeStyle: 'short' })}`;																									
+																									
+loadingOverlay.style.display = 'none';																									
+dashboardContainer.style.opacity = 1;																									
+}																									
+};																									
+																									
+app.init();																									
+</script>																									
+</body>																									
+</html>																									
